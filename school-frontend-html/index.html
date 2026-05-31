@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School MS — Plain HTML Version</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #020617; color: #f1f5f9; }
+    .font-display { font-family: 'Playfair Display', serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .card { background: rgba(15,23,42,0.8); border: 1px solid rgba(30,41,59,0.6); border-radius: 16px; }
+    .input { background: rgba(30,41,59,0.6); border: 1px solid rgba(51,65,85,0.6); border-radius: 12px; padding: 10px 16px; color: #f1f5f9; outline: none; width: 100%; font-size: 14px; font-family: 'DM Sans', sans-serif; }
+    .input:focus { border-color: rgba(14,165,233,0.6); box-shadow: 0 0 0 3px rgba(14,165,233,0.1); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 12px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+    .btn-primary { background: #0ea5e9; color: white; box-shadow: 0 4px 14px rgba(14,165,233,0.25); }
+    .btn-primary:hover { background: #0284c7; }
+    .btn-secondary { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+    .btn-secondary:hover { background: #334155; }
+    .nav-link { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; font-weight: 500; color: #94a3b8; cursor: pointer; text-decoration: none; transition: all 0.15s; }
+    .nav-link:hover { color: #e2e8f0; background: rgba(30,41,59,0.6); }
+    .nav-link.active { color: #38bdf8; background: rgba(14,165,233,0.1); border: 1px solid rgba(14,165,233,0.2); }
+    .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+    .badge-active { background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .badge-pending { background: rgba(245,158,11,0.1); color: #fbbf24; border: 1px solid rgba(245,158,11,0.2); }
+    .badge-paid { background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2); }
+    .badge-overdue { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .badge-partial { background: rgba(249,115,22,0.1); color: #fb923c; border: 1px solid rgba(249,115,22,0.2); }
+    .badge-withdrawn { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .badge-graduated { background: rgba(14,165,233,0.1); color: #38bdf8; border: 1px solid rgba(14,165,233,0.2); }
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal { background: #0f172a; border: 1px solid #1e293b; border-radius: 20px; width: 100%; max-width: 520px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+    table { width: 100%; border-collapse: collapse; }
+    th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid rgba(30,41,59,0.6); }
+    td { padding: 14px 16px; font-size: 14px; color: #cbd5e1; border-bottom: 1px solid rgba(30,41,59,0.4); }
+    tr:hover td { background: rgba(30,41,59,0.3); }
+    tr:last-child td { border-bottom: none; }
+    .stat-card { padding: 20px; border-radius: 16px; }
+    select.input { appearance: none; cursor: pointer; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 999px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .page.active { animation: fadeIn 0.25s ease-out; }
+    body { background-image: radial-gradient(ellipse at 20% 0%, rgba(14,165,233,0.07) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(251,191,36,0.03) 0%, transparent 50%); background-attachment: fixed; }
+  </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════════════ -->
+<aside style="width:256px;min-width:256px;background:rgba(15,23,42,0.95);border-right:1px solid rgba(30,41,59,0.6);display:flex;flex-direction:column;height:100vh;">
+  <!-- Logo -->
+  <div style="padding:20px 24px;border-bottom:1px solid rgba(30,41,59,0.6);display:flex;align-items:center;gap:12px;">
+    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#0ea5e9,#0369a1);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(14,165,233,0.3);">
+      <svg width="18" height="18" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+    </div>
+    <div>
+      <p class="font-display" style="font-size:14px;color:#f1f5f9;line-height:1.2;">School</p>
+      <p style="font-size:11px;color:#475569;line-height:1.2;">Management System</p>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav style="flex:1;padding:12px;overflow-y:auto;">
+    <a class="nav-link active" onclick="showPage('dashboard',this)" href="#">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-link" onclick="showPage('students',this)" href="#">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Students
+    </a>
+    <a class="nav-link" onclick="showPage('parents',this)" href="#">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Parents
+    </a>
+    <a class="nav-link" onclick="showPage('fees',this)" href="#">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Fee Types
+    </a>
+    <a class="nav-link" onclick="showPage('invoices',this)" href="#">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Invoices
+    </a>
+    <a class="nav-link" onclick="showPage('payments',this)" href="#">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Payments
+    </a>
+  </nav>
+
+  <div style="padding:16px 24px;border-top:1px solid rgba(30,41,59,0.6);">
+    <p style="font-size:11px;color:#1e3a4a;">v1.0.0 · Plain HTML Version</p>
+    <p style="font-size:10px;color:#1e3a4a;margin-top:2px;">For learning comparison</p>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══════════════════════════════════════════════════════════════════ -->
+<div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;">
+  <!-- Top bar -->
+  <header style="padding:16px 24px;border-bottom:1px solid rgba(30,41,59,0.6);background:rgba(15,23,42,0.5);backdrop-filter:blur(8px);">
+    <h1 class="font-display" id="page-title" style="font-size:20px;color:#f1f5f9;">Dashboard</h1>
+    <p style="font-size:12px;color:#475569;" id="page-date"></p>
+  </header>
+
+  <!-- Pages -->
+  <main style="flex:1;overflow-y:auto;padding:24px;">
+
+    <!-- ── Dashboard ── -->
+    <div class="page active" id="page-dashboard">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px;" id="stats-grid">
+        <div class="stat-card" style="background:linear-gradient(135deg,rgba(14,165,233,0.15),rgba(14,165,233,0.03));border:1px solid rgba(14,165,233,0.2);">
+          <p style="font-size:11px;color:#64748b;margin-bottom:4px;">Total Students</p>
+          <p class="font-display" style="font-size:28px;color:#f1f5f9;" id="stat-total-students">—</p>
+        </div>
+        <div class="stat-card" style="background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.03));border:1px solid rgba(16,185,129,0.2);">
+          <p style="font-size:11px;color:#64748b;margin-bottom:4px;">Active Students</p>
+          <p class="font-display" style="font-size:28px;color:#f1f5f9;" id="stat-active-students">—</p>
+        </div>
+        <div class="stat-card" style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.03));border:1px solid rgba(245,158,11,0.2);">
+          <p style="font-size:11px;color:#64748b;margin-bottom:4px;">Pending Invoices</p>
+          <p class="font-display" style="font-size:28px;color:#f1f5f9;" id="stat-pending">—</p>
+        </div>
+        <div class="stat-card" style="background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(239,68,68,0.03));border:1px solid rgba(239,68,68,0.2);">
+          <p style="font-size:11px;color:#64748b;margin-bottom:4px;">Overdue</p>
+          <p class="font-display" style="font-size:28px;color:#f1f5f9;" id="stat-overdue">—</p>
+        </div>
+        <div class="stat-card" style="background:linear-gradient(135deg,rgba(16,185,129,0.15),rgba(16,185,129,0.03));border:1px solid rgba(16,185,129,0.2);">
+          <p style="font-size:11px;color:#64748b;margin-bottom:4px;">Collected (Month)</p>
+          <p class="font-display" style="font-size:20px;color:#34d399;" id="stat-collected">—</p>
+        </div>
+        <div class="stat-card" style="background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.03));border:1px solid rgba(245,158,11,0.2);">
+          <p style="font-size:11px;color:#64748b;margin-bottom:4px;">Outstanding</p>
+          <p class="font-display" style="font-size:20px;color:#fbbf24;" id="stat-outstanding">—</p>
+        </div>
+      </div>
+      <div id="dashboard-error" style="display:none;padding:16px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:12px;color:#f87171;font-size:14px;"></div>
+    </div>
+
+    <!-- ── Students ── -->
+    <div class="page" id="page-students">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <h2 class="font-display" style="font-size:20px;color:#f1f5f9;">Students</h2>
+          <p style="font-size:13px;color:#475569;" id="student-count">Loading...</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-add-student')">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Student
+        </button>
+      </div>
+      <div style="margin-bottom:16px;">
+        <input class="input" style="max-width:360px;" type="text" placeholder="Search students..." oninput="filterStudents(this.value)" />
+      </div>
+      <div class="card" style="overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Class</th><th>CNIC/B-Form</th><th>Admission</th><th>Status</th>
+            </tr></thead>
+            <tbody id="students-tbody">
+              <tr><td colspan="5" style="text-align:center;color:#475569;padding:32px;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Parents ── -->
+    <div class="page" id="page-parents">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <h2 class="font-display" style="font-size:20px;color:#f1f5f9;">Parents / Guardians</h2>
+          <p style="font-size:13px;color:#475569;" id="parent-count">Loading...</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-add-parent')">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Parent
+        </button>
+      </div>
+      <div class="card" style="overflow:hidden;">
+        <table>
+          <thead><tr>
+            <th>Guardian Name</th><th>CNIC</th><th>Contact</th><th>WhatsApp</th><th>Address</th>
+          </tr></thead>
+          <tbody id="parents-tbody">
+            <tr><td colspan="5" style="text-align:center;color:#475569;padding:32px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Fees ── -->
+    <div class="page" id="page-fees">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <h2 class="font-display" style="font-size:20px;color:#f1f5f9;">Fee Structure</h2>
+          <p style="font-size:13px;color:#475569;">Define school fee types and amounts</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-add-fee')">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Fee Type
+        </button>
+      </div>
+      <div id="fees-list" style="display:flex;flex-direction:column;gap:12px;">
+        <p style="color:#475569;font-size:14px;">Loading...</p>
+      </div>
+    </div>
+
+    <!-- ── Invoices ── -->
+    <div class="page" id="page-invoices">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <h2 class="font-display" style="font-size:20px;color:#f1f5f9;">Invoices</h2>
+          <p style="font-size:13px;color:#475569;">Monthly bills for students</p>
+        </div>
+        <button class="btn btn-primary" onclick="loadInvoiceForm()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Create Invoice
+        </button>
+      </div>
+      <div class="card" style="overflow:hidden;">
+        <table>
+          <thead><tr>
+            <th>Invoice #</th><th>Student</th><th>Month</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th>
+          </tr></thead>
+          <tbody id="invoices-tbody">
+            <tr><td colspan="7" style="text-align:center;color:#475569;padding:32px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Payments ── -->
+    <div class="page" id="page-payments">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">
+        <div>
+          <h2 class="font-display" style="font-size:20px;color:#f1f5f9;">Payments</h2>
+          <p style="font-size:13px;color:#475569;">Recorded fee payments</p>
+        </div>
+        <button class="btn btn-primary" onclick="loadPaymentForm()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Record Payment
+        </button>
+      </div>
+      <div class="card" style="overflow:hidden;">
+        <table>
+          <thead><tr>
+            <th>Payment #</th><th>Invoice #</th><th>Amount</th><th>Date</th><th>Notes</th>
+          </tr></thead>
+          <tbody id="payments-tbody">
+            <tr><td colspan="5" style="text-align:center;color:#475569;padding:32px;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══ MODALS ════════════════════════════════════════════════════════════════ -->
+
+<!-- Add Student -->
+<div class="modal-bg" id="modal-add-student" style="display:none;" onclick="if(event.target===this)closeModal('modal-add-student')">
+  <div class="modal">
+    <div style="padding:20px 24px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;">
+      <h3 class="font-display" style="color:#f1f5f9;">Add New Student</h3>
+      <button onclick="closeModal('modal-add-student')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:20px;">×</button>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">First Name</label>
+        <input class="input" id="s-first" placeholder="first_name" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Last Name</label>
+        <input class="input" id="s-last" placeholder="last_name" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">B-Form</label>
+        <input class="input" id="s-cnic" placeholder="b_form" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Date of Birth</label>
+        <input type="date" class="input" id="s-dob" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Admission Date</label>
+        <input type="date" class="input" id="s-admission" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Class</label>
+        <select class="input" id="s-class">
+          <option>Nursery</option><option>KG</option><option>1</option><option>2</option>
+          <option>3</option><option>4</option><option>5</option><option>6</option>
+          <option>7</option><option>8</option><option>9</option><option>10</option>
+        </select></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Status</label>
+        <select class="input" id="s-status">
+          <option value="active">Active</option>
+          <option value="withdrawn">Withdrawn</option>
+          <option value="graduated">Graduated</option>
+        </select></div>
+    </div>
+    <div style="padding:0 24px 24px;display:flex;justify-content:flex-end;gap:12px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-student')">Cancel</button>
+      <button class="btn btn-primary" onclick="createStudent()">Create Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Parent -->
+<div class="modal-bg" id="modal-add-parent" style="display:none;" onclick="if(event.target===this)closeModal('modal-add-parent')">
+  <div class="modal">
+    <div style="padding:20px 24px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;">
+      <h3 class="font-display" style="color:#f1f5f9;">Add Parent / Guardian</h3>
+      <button onclick="closeModal('modal-add-parent')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:20px;">×</button>
+    </div>
+    <div style="padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Full Name</label>
+        <input class="input" id="p-name" placeholder="Muhammad Tariq" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">CNIC</label>
+        <input class="input" id="p-cnic" placeholder="3520112345671" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Contact Number</label>
+        <input class="input" id="p-contact" placeholder="03001234567" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">WhatsApp (Optional)</label>
+        <input class="input" id="p-whatsapp" placeholder="03001234567" /></div>
+      <div style="grid-column:1/-1;"><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Address</label>
+        <textarea class="input" id="p-address" rows="2" placeholder="House #5, Street 3, Lahore" style="resize:none;"></textarea></div>
+    </div>
+    <div style="padding:0 24px 24px;display:flex;justify-content:flex-end;gap:12px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-parent')">Cancel</button>
+      <button class="btn btn-primary" onclick="createParent()">Add Parent</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Fee -->
+<div class="modal-bg" id="modal-add-fee" style="display:none;" onclick="if(event.target===this)closeModal('modal-add-fee')">
+  <div class="modal">
+    <div style="padding:20px 24px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;">
+      <h3 class="font-display" style="color:#f1f5f9;">Add Fee Type</h3>
+      <button onclick="closeModal('modal-add-fee')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:20px;">×</button>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Fee Name</label>
+        <input class="input" id="f-name" placeholder="Tuition Fee" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Default Amount (PKR)</label>
+        <input type="number" class="input" id="f-amount" placeholder="3500" /></div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Description (Optional)</label>
+        <input class="input" id="f-desc" placeholder="Monthly tuition fee" /></div>
+    </div>
+    <div style="padding:0 24px 24px;display:flex;justify-content:flex-end;gap:12px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-fee')">Cancel</button>
+      <button class="btn btn-primary" onclick="createFee()">Create Fee Type</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Invoice -->
+<div class="modal-bg" id="modal-add-invoice" style="display:none;" onclick="if(event.target===this)closeModal('modal-add-invoice')">
+  <div class="modal" style="max-width:560px;">
+    <div style="padding:20px 24px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;">
+      <h3 class="font-display" style="color:#f1f5f9;">Create Invoice</h3>
+      <button onclick="closeModal('modal-add-invoice')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:20px;">×</button>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Student</label>
+          <select class="input" id="inv-student"></select></div>
+        <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Billing Month</label>
+          <input type="month" class="input" id="inv-month" /></div>
+        <div style="grid-column:1/-1;"><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Due Date</label>
+          <input type="date" class="input" id="inv-due" /></div>
+      </div>
+      <div>
+        <label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:8px;">Fee Items</label>
+        <div id="inv-fee-items" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div style="display:flex;justify-content:space-between;margin-top:12px;padding:10px 16px;background:rgba(30,41,59,0.5);border-radius:10px;">
+          <span style="font-size:14px;color:#94a3b8;">Total</span>
+          <span class="font-mono" style="font-size:14px;font-weight:600;color:#f1f5f9;" id="inv-total">PKR 0</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0 24px 24px;display:flex;justify-content:flex-end;gap:12px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-invoice')">Cancel</button>
+      <button class="btn btn-primary" onclick="createInvoice()">Create Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- Record Payment -->
+<div class="modal-bg" id="modal-add-payment" style="display:none;" onclick="if(event.target===this)closeModal('modal-add-payment')">
+  <div class="modal">
+    <div style="padding:20px 24px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;">
+      <h3 class="font-display" style="color:#f1f5f9;">Record Payment</h3>
+      <button onclick="closeModal('modal-add-payment')" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:20px;">×</button>
+    </div>
+    <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Invoice</label>
+        <select class="input" id="pay-invoice" onchange="updatePaymentInfo()"></select></div>
+      <div id="pay-info" style="display:none;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Amount (PKR)</label>
+          <input type="number" class="input" id="pay-amount" placeholder="0" /></div>
+        <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Payment Date</label>
+          <input type="date" class="input" id="pay-date" /></div>
+      </div>
+      <div><label style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Notes (Optional)</label>
+        <input class="input" id="pay-notes" placeholder="Cash / Bank Transfer..." /></div>
+    </div>
+    <div style="padding:0 24px 24px;display:flex;justify-content:flex-end;gap:12px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-payment')">Cancel</button>
+      <button class="btn btn-primary" onclick="createPayment()">Record Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="toast" style="display:none;position:fixed;top:20px;right:20px;z-index:100;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:500;box-shadow:0 10px 25px rgba(0,0,0,0.4);transition:all 0.3s;"></div>
+
+<script>
+// ─── Config ───────────────────────────────────────────────────────────────────
+const API = (window.API_URL || 'http://localhost:8000') + '/api/v1'
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let allStudents = [], allFees = [], invoiceFeeItems = []
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+function toast(msg, ok = true) {
+  const el = document.getElementById('toast')
+  el.textContent = msg
+  el.style.display = 'block'
+  el.style.background = ok ? '#064e3b' : '#450a0a'
+  el.style.color = ok ? '#34d399' : '#f87171'
+  el.style.border = `1px solid ${ok ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`
+  setTimeout(() => el.style.display = 'none', 3000)
+}
+async function api(method, path, body) {
+  const res = await fetch(API + path, {
+    method, headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || 'Request failed')
+  }
+  if (res.status === 204) return null
+  return res.json()
+}
+const fmt = (n) => `PKR ${Number(n||0).toLocaleString()}`
+const badge = (status) => `<span class="badge badge-${status}">${status}</span>`
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+const titles = { dashboard:'Dashboard', students:'Students', parents:'Parents / Guardians', fees:'Fee Types', invoices:'Invoices', payments:'Payments' }
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
+  document.getElementById('page-' + name).classList.add('active')
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'))
+  el.classList.add('active')
+  document.getElementById('page-title').textContent = titles[name]
+  if (name === 'dashboard') loadDashboard()
+  if (name === 'students') loadStudents()
+  if (name === 'parents') loadParents()
+  if (name === 'fees') loadFees()
+  if (name === 'invoices') loadInvoices()
+  if (name === 'payments') loadPayments()
+}
+function openModal(id) { document.getElementById(id).style.display = 'flex' }
+function closeModal(id) { document.getElementById(id).style.display = 'none' }
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const s = await api('GET', '/dashboard/stats')
+    document.getElementById('stat-total-students').textContent = s.total_students
+    document.getElementById('stat-active-students').textContent = s.active_students
+    document.getElementById('stat-pending').textContent = s.pending_invoices
+    document.getElementById('stat-overdue').textContent = s.overdue_invoices
+    document.getElementById('stat-collected').textContent = fmt(s.total_collected_this_month)
+    document.getElementById('stat-outstanding').textContent = fmt(s.total_pending_amount)
+  } catch(e) {
+    const el = document.getElementById('dashboard-error')
+    el.style.display = 'block'
+    el.textContent = 'Backend not reachable. Start the FastAPI server and refresh.'
+  }
+}
+
+// ─── Students ─────────────────────────────────────────────────────────────────
+async function loadStudents() {
+  try {
+    allStudents = await api('GET', '/students?limit=200')
+    document.getElementById('student-count').textContent = `${allStudents.length} total students`
+    renderStudents(allStudents)
+  } catch(e) { toast('Failed to load students', false) }
+}
+function renderStudents(list) {
+  const tb = document.getElementById('students-tbody')
+  if (!list.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#475569;padding:32px;">No students found</td></tr>'; return }
+  tb.innerHTML = list.map(s => `
+    <tr>
+      <td style="color:#e2e8f0;font-weight:500;">${s.first_name} ${s.last_name}</td>
+      <td><span class="font-mono" style="font-size:12px;background:#1e293b;padding:3px 8px;border-radius:6px;">Class ${s.current_class}</span></td>
+      <td class="font-mono" style="font-size:12px;color:#64748b;">${s.cnic_bform}</td>
+      <td style="color:#64748b;">${s.admission_date}</td>
+      <td>
+        <select onchange="changeStudentStatus(${s.id}, this.value)" class="badge badge-${s.status}" style="background:rgba(15,23,42,0.8); border:1px solid rgba(30,41,59,0.6); outline:none; cursor:pointer; padding:2px 8px; font-size:12px; border-radius:999px;">
+          <option value="active" ${s.status === 'active' ? 'selected' : ''} style="background:#0f172a; color:#34d399;">active</option>
+          <option value="withdrawn" ${s.status === 'withdrawn' ? 'selected' : ''} style="background:#0f172a; color:#f87171;">withdrawn</option>
+          <option value="graduated" ${s.status === 'graduated' ? 'selected' : ''} style="background:#0f172a; color:#38bdf8;">graduated</option>
+        </select>
+      </td>
+    </tr>`).join('')
+}
+function filterStudents(q) {
+  renderStudents(allStudents.filter(s =>
+    `${s.first_name} ${s.last_name} ${s.cnic_bform} ${s.current_class}`.toLowerCase().includes(q.toLowerCase())
+  ))
+}
+async function changeStudentStatus(id, status) {
+  try {
+    await api('PATCH', `/students/${id}`, { status })
+    toast('Student status updated!')
+    loadStudents()
+  } catch(e) { toast(e.message, false) }
+}
+async function createStudent() {
+  try {
+    await api('POST', '/students', {
+      first_name: document.getElementById('s-first').value,
+      last_name: document.getElementById('s-last').value,
+      cnic_bform: document.getElementById('s-cnic').value,
+      dob: document.getElementById('s-dob').value,
+      admission_date: document.getElementById('s-admission').value,
+      current_class: document.getElementById('s-class').value,
+      status: document.getElementById('s-status').value
+    })
+    toast('Student created!')
+    closeModal('modal-add-student')
+    loadStudents()
+  } catch(e) { toast(e.message, false) }
+}
+
+// ─── Parents ──────────────────────────────────────────────────────────────────
+async function loadParents() {
+  try {
+    const parents = await api('GET', '/parents?limit=200')
+    document.getElementById('parent-count').textContent = `${parents.length} registered guardians`
+    const tb = document.getElementById('parents-tbody')
+    if (!parents.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#475569;padding:32px;">No parents yet</td></tr>'; return }
+    tb.innerHTML = parents.map(p => `
+      <tr>
+        <td style="color:#e2e8f0;font-weight:500;">${p.guardian_name}</td>
+        <td class="font-mono" style="font-size:12px;color:#64748b;">${p.cnic}</td>
+        <td style="color:#38bdf8;">${p.contact_no}</td>
+        <td style="color:#64748b;">${p.whatsapp_no || '—'}</td>
+        <td style="color:#64748b;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.address || '—'}</td>
+      </tr>`).join('')
+  } catch(e) { toast('Failed to load parents', false) }
+}
+async function createParent() {
+  try {
+    await api('POST', '/parents', {
+      guardian_name: document.getElementById('p-name').value,
+      cnic: document.getElementById('p-cnic').value,
+      contact_no: document.getElementById('p-contact').value,
+      whatsapp_no: document.getElementById('p-whatsapp').value || null,
+      address: document.getElementById('p-address').value || null,
+    })
+    toast('Parent added!')
+    closeModal('modal-add-parent')
+    loadParents()
+  } catch(e) { toast(e.message, false) }
+}
+
+// ─── Fees ─────────────────────────────────────────────────────────────────────
+async function loadFees() {
+  try {
+    allFees = await api('GET', '/fees')
+    const container = document.getElementById('fees-list')
+    if (!allFees.length) { container.innerHTML = '<p style="color:#475569;font-size:14px;">No fee types yet. Add your first one.</p>'; return }
+    container.innerHTML = allFees.map(f => `
+      <div class="card" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="width:40px;height:40px;border-radius:10px;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.2);display:flex;align-items:center;justify-content:center;">
+            <svg width="16" height="16" fill="none" stroke="#38bdf8" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div>
+            <p style="color:#e2e8f0;font-weight:500;">${f.fee_name}</p>
+            ${f.description ? `<p style="font-size:12px;color:#475569;">${f.description}</p>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="text-align:right;">
+            <p class="font-mono" style="color:#f1f5f9;font-weight:600;">${fmt(f.default_amount)}</p>
+            <p style="font-size:11px;color:#475569;">per month</p>
+          </div>
+          <span onclick="toggleFeeStatus(${f.id}, ${!f.is_active})" class="badge badge-${f.is_active ? 'active' : 'withdrawn'}" style="cursor:pointer;" title="Click to toggle status">
+            ${f.is_active ? 'active' : 'inactive'}
+          </span>
+        </div>
+      </div>`).join('')
+  } catch(e) { toast('Failed to load fees', false) }
+}
+async function toggleFeeStatus(id, isActive) {
+  try {
+    await api('PATCH', `/fees/${id}`, { is_active: isActive })
+    toast('Fee status updated!')
+    loadFees()
+  } catch(e) { toast(e.message, false) }
+}
+async function createFee() {
+  try {
+    await api('POST', '/fees', {
+      fee_name: document.getElementById('f-name').value,
+      default_amount: parseFloat(document.getElementById('f-amount').value),
+      description: document.getElementById('f-desc').value || null
+    })
+    toast('Fee type created!')
+    closeModal('modal-add-fee')
+    loadFees()
+  } catch(e) { toast(e.message, false) }
+}
+
+// ─── Invoices ─────────────────────────────────────────────────────────────────
+async function loadInvoices() {
+  try {
+    const invoices = await api('GET', '/invoices?limit=200')
+    const tb = document.getElementById('invoices-tbody')
+    if (!invoices.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#475569;padding:32px;">No invoices yet</td></tr>'; return }
+    tb.innerHTML = invoices.map(i => `
+      <tr>
+        <td class="font-mono" style="font-size:12px;color:#64748b;">#${String(i.id).padStart(4,'0')}</td>
+        <td style="color:#e2e8f0;">${i.student ? `${i.student.first_name} ${i.student.last_name}` : `#${i.student_id}`}</td>
+        <td class="font-mono" style="font-size:12px;">${i.billing_month}</td>
+        <td class="font-mono">${fmt(i.total_amount)}</td>
+        <td class="font-mono" style="color:#34d399;">${fmt(i.amount_paid)}</td>
+        <td class="font-mono" style="color:#fbbf24;">${fmt(i.balance_due)}</td>
+        <td>${badge(i.status)}</td>
+      </tr>`).join('')
+  } catch(e) { toast('Failed to load invoices', false) }
+}
+async function loadInvoiceForm() {
+  try {
+    const [students, fees] = await Promise.all([
+      api('GET', '/students?status=active&limit=200'),
+      api('GET', '/fees')
+    ])
+    const sel = document.getElementById('inv-student')
+    sel.innerHTML = '<option value="">Select student...</option>' +
+      students.map(s => `<option value="${s.id}">${s.first_name} ${s.last_name} — Class ${s.current_class}</option>`).join('')
+    document.getElementById('inv-month').value = new Date().toISOString().slice(0, 7)
+    invoiceFeeItems = fees.filter(f => f.is_active).map(f => ({ ...f, enabled: true, amount: f.default_amount }))
+    renderFeeItems()
+    openModal('modal-add-invoice')
+  } catch(e) { toast('Failed to load form data', false) }
+}
+function renderFeeItems() {
+  const container = document.getElementById('inv-fee-items')
+  container.innerHTML = invoiceFeeItems.map((f, i) => `
+    <div style="display:flex;align-items:center;gap:12px;background:rgba(30,41,59,0.5);border-radius:10px;padding:10px 14px;">
+      <input type="checkbox" ${f.enabled ? 'checked' : ''} onchange="toggleFeeItem(${i}, this.checked)" style="width:16px;height:16px;accent-color:#0ea5e9;cursor:pointer;" />
+      <span style="flex:1;font-size:14px;color:#cbd5e1;">${f.fee_name}</span>
+      <span style="font-size:12px;color:#475569;">PKR</span>
+      <input type="number" value="${f.amount}" onchange="updateFeeItem(${i}, this.value)" style="width:90px;background:rgba(51,65,85,0.5);border:1px solid rgba(71,85,105,0.6);border-radius:8px;padding:4px 8px;color:#f1f5f9;font-size:13px;font-family:'JetBrains Mono',monospace;outline:none;" />
+    </div>`).join('')
+  updateTotal()
+}
+function toggleFeeItem(i, v) { invoiceFeeItems[i].enabled = v; updateTotal() }
+function updateFeeItem(i, v) { invoiceFeeItems[i].amount = parseFloat(v) || 0; updateTotal() }
+function updateTotal() {
+  const total = invoiceFeeItems.filter(f => f.enabled).reduce((a, f) => a + parseFloat(f.amount), 0)
+  document.getElementById('inv-total').textContent = `PKR ${total.toLocaleString()}`
+}
+async function createInvoice() {
+  try {
+    const items = invoiceFeeItems.filter(f => f.enabled)
+    if (!items.length) { toast('Select at least one fee', false); return }
+    await api('POST', '/invoices', {
+      student_id: parseInt(document.getElementById('inv-student').value),
+      billing_month: document.getElementById('inv-month').value,
+      due_date: document.getElementById('inv-due').value,
+      line_items: items.map(f => ({ fee_type_id: f.id, amount: parseFloat(f.amount) }))
+    })
+    toast('Invoice created!')
+    closeModal('modal-add-invoice')
+    loadInvoices()
+  } catch(e) { toast(e.message, false) }
+}
+
+// ─── Payments ─────────────────────────────────────────────────────────────────
+async function loadPayments() {
+  try {
+    const payments = await api('GET', '/payments?limit=200')
+    const tb = document.getElementById('payments-tbody')
+    if (!payments.length) { tb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#475569;padding:32px;">No payments yet</td></tr>'; return }
+    tb.innerHTML = payments.map(p => `
+      <tr>
+        <td class="font-mono" style="font-size:12px;color:#64748b;">#${String(p.id).padStart(4,'0')}</td>
+        <td><span class="font-mono" style="font-size:12px;background:#1e293b;padding:3px 8px;border-radius:6px;">INV-${String(p.invoice_id).padStart(4,'0')}</span></td>
+        <td class="font-mono" style="color:#34d399;font-weight:600;">${fmt(p.amount_paid)}</td>
+        <td style="color:#cbd5e1;">${p.payment_date}</td>
+        <td style="color:#64748b;">${p.notes || '—'}</td>
+      </tr>`).join('')
+  } catch(e) { toast('Failed to load payments', false) }
+}
+async function loadPaymentForm() {
+  try {
+    const invoices = await api('GET', '/invoices?limit=200')
+    const pending = invoices.filter(i => i.status !== 'paid')
+    const sel = document.getElementById('pay-invoice')
+    sel.innerHTML = '<option value="">Select invoice...</option>' +
+      pending.map(i => `<option value="${i.id}" data-balance="${i.balance_due}" data-total="${i.total_amount}" data-paid="${i.amount_paid}">
+        INV-${String(i.id).padStart(4,'0')} · ${i.billing_month} · Balance ${fmt(i.balance_due)}
+      </option>`).join('')
+    document.getElementById('pay-date').value = new Date().toISOString().split('T')[0]
+    openModal('modal-add-payment')
+  } catch(e) { toast('Failed to load invoices', false) }
+}
+function updatePaymentInfo() {
+  const sel = document.getElementById('pay-invoice')
+  const opt = sel.options[sel.selectedIndex]
+  const info = document.getElementById('pay-info')
+  if (!opt.value) { info.style.display = 'none'; return }
+  info.style.display = 'grid'
+  info.innerHTML = [
+    { label: 'Total', val: opt.dataset.total, color: '#f1f5f9' },
+    { label: 'Paid', val: opt.dataset.paid, color: '#34d399' },
+    { label: 'Balance', val: opt.dataset.balance, color: '#fbbf24' },
+  ].map(({ label, val, color }) => `
+    <div style="background:rgba(30,41,59,0.5);border-radius:8px;padding:8px;text-align:center;">
+      <p style="font-size:11px;color:#475569;">${label}</p>
+      <p class="font-mono" style="font-size:13px;font-weight:600;color:${color};">${fmt(val)}</p>
+    </div>`).join('')
+  document.getElementById('pay-amount').value = opt.dataset.balance
+}
+async function createPayment() {
+  try {
+    await api('POST', '/payments', {
+      invoice_id: parseInt(document.getElementById('pay-invoice').value),
+      amount_paid: parseFloat(document.getElementById('pay-amount').value),
+      payment_date: document.getElementById('pay-date').value,
+      notes: document.getElementById('pay-notes').value || null
+    })
+    toast('Payment recorded!')
+    closeModal('modal-add-payment')
+    loadPayments()
+  } catch(e) { toast(e.message, false) }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+document.getElementById('page-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
+loadDashboard()
+</script>
+</body>
+</html>

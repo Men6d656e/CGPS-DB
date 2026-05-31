@@ -1,0 +1,50 @@
+# ──────────────────────────────────────────────
+# Environment / Secrets  ← NEVER commit these
+# ──────────────────────────────────────────────
+.env
+*.env
+!.env.example          # keep the example template
+
+# ──────────────────────────────────────────────
+# Python
+# ──────────────────────────────────────────────
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ──────────────────────────────────────────────
+# Node / npm
+# ──────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ──────────────────────────────────────────────
+# Vite / frontend build output
+# ──────────────────────────────────────────────
+dist/
+.cache/
+.vite/
+
+# ──────────────────────────────────────────────
+# OS / Editor
+# ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.suo
+*.user
