@@ -19,6 +19,29 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, relationship as 
 from app.database import Base
 
 
+# ─── Users (Authentication) ────────────────────────────────────────────────────
+
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    STAFF = "staff"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    full_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    role: Mapped[UserRole] = mapped_column(
+        String(10), default=UserRole.STAFF, nullable=False
+    )
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
+    is_superuser: Mapped[bool] = mapped_column(default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
 class StudentStatus(str, enum.Enum):
@@ -49,7 +72,10 @@ class Student(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    cnic_bform: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    cnic_bform: Mapped[str] = mapped_column(Text, nullable=False)
+    cnic_bform_hash: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, index=True
+    )
     dob: Mapped[date] = mapped_column(Date, nullable=False)
     admission_date: Mapped[date] = mapped_column(Date, nullable=False)
     current_class: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -78,7 +104,10 @@ class Parent(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     guardian_name: Mapped[str] = mapped_column(String(150), nullable=False)
-    cnic: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    cnic: Mapped[str] = mapped_column(Text, nullable=False)
+    cnic_hash: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, index=True
+    )
     contact_no: Mapped[str] = mapped_column(String(20), nullable=False)
     whatsapp_no: Mapped[str | None] = mapped_column(String(20), nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)

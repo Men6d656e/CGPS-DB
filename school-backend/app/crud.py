@@ -7,10 +7,71 @@ from decimal import Decimal
 from sqlalchemy import select, func, and_, desc
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import set_committed_value
+
 from app import models, schemas
+from app.auth import get_password_hash
+from app.encryption import encrypt_field, decrypt_field, hash_for_dedup
+
+
+# ─── Users (Authentication) ───────────────────────────────────────────────────
+
+async def get_user_by_username(db: AsyncSession, username: str):
+    q = select(models.User).where(models.User.username == username)
+    result = await db.execute(q)
+    return result.scalar_one_or_none()
+
+
+async def get_user_by_email(db: AsyncSession, email: str):
+    q = select(models.User).where(models.User.email == email)
+    result = await db.execute(q)
+    return result.scalar_one_or_none()
+
+
+async def create_user(db: AsyncSession, data: schemas.UserCreate):
+    user = models.User(
+        username=data.username,
+        email=data.email,
+        hashed_password=get_password_hash(data.password),
+        full_name=data.full_name,
+        role=data.role,
+    )
+    db.add(user)
+    await db.flush()
+    await db.refresh(user)
+    return user
+
+
+async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
+    q = select(models.User).offset(skip).limit(limit).order_by(models.User.username)
+    result = await db.execute(q)
+    return result.scalars().all()
+
+
+async def update_user_role(db: AsyncSession, user_id: int, role: schemas.UserRole):
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        return None
+    user.role = role
+    await db.flush()
+    return user
+
+
+async def get_user_by_id(db: AsyncSession, user_id: int):
+    q = select(models.User).where(models.User.id == user_id)
+    result = await db.execute(q)
+    return result.scalar_one_or_none()
 
 
 # ─── Students ─────────────────────────────────────────────────────────────────
+
+def _decrypt_student_cnic(student: models.Student):
+    """Decrypt the cnic_bform on a Student object without marking it as dirty."""
+    if student and student.cnic_bform:
+        plain = decrypt_field(student.cnic_bform)
+        # Use set_committed_value so SQLAlchemy doesn't flush plaintext back to DB
+        set_committed_value(student, 'cnic_bform', plain)
+
 
 async def get_students(db: AsyncSession, skip: int = 0, limit: int = 100, status: str = None):
     q = select(models.Student).options(
@@ -20,7 +81,10 @@ async def get_students(db: AsyncSession, skip: int = 0, limit: int = 100, status
         q = q.where(models.Student.status == status)
     q = q.offset(skip).limit(limit).order_by(desc(models.Student.created_at))
     result = await db.execute(q)
-    return result.scalars().all()
+    students = result.scalars().all()
+    for s in students:
+        _decrypt_student_cnic(s)
+    return students
 
 
 async def get_student(db: AsyncSession, student_id: int):
@@ -29,14 +93,36 @@ async def get_student(db: AsyncSession, student_id: int):
         selectinload(models.Student.invoices)
     ).where(models.Student.id == student_id)
     result = await db.execute(q)
-    return result.scalar_one_or_none()
+    student = result.scalar_one_or_none()
+    _decrypt_student_cnic(student)
+    return student
 
 
 async def create_student(db: AsyncSession, data: schemas.StudentCreate):
-    student = models.Student(**data.model_dump())
+    # Check duplicate via hash before encrypting
+    cnic_hash = hash_for_dedup(data.cnic_bform)
+    existing = await db.execute(
+        select(models.Student).where(models.Student.cnic_bform_hash == cnic_hash)
+    )
+    if existing.scalar_one_or_none():
+        raise ValueError("Student with this CNIC/B-Form already exists")
+
+    student = models.Student(
+        first_name=data.first_name,
+        last_name=data.last_name,
+        cnic_bform=encrypt_field(data.cnic_bform),
+        cnic_bform_hash=cnic_hash,
+        dob=data.dob,
+        admission_date=data.admission_date,
+        current_class=data.current_class,
+        status=data.status,
+    )
     db.add(student)
     await db.flush()
     await db.refresh(student)
+    # Decrypt for response — use set_committed_value to avoid writing plaintext back
+    plain = decrypt_field(student.cnic_bform)
+    set_committed_value(student, 'cnic_bform', plain)
     return student
 
 
@@ -47,6 +133,10 @@ async def update_student(db: AsyncSession, student_id: int, data: schemas.Studen
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(student, field, value)
     await db.flush()
+    # Decrypt for response — use set_committed_value to avoid writing plaintext back
+    # (get_student already decrypted via _decrypt_student_cnic, but flush may have
+    # reloaded the encrypted value; re-decrypt safely)
+    student = await get_student(db, student_id)
     return student
 
 
@@ -78,10 +168,20 @@ async def get_siblings(db: AsyncSession, student_id: int):
 
 # ─── Parents ──────────────────────────────────────────────────────────────────
 
+def _decrypt_parent_cnic(parent: models.Parent):
+    """Decrypt the cnic on a Parent object without marking it as dirty."""
+    if parent and parent.cnic:
+        plain = decrypt_field(parent.cnic)
+        set_committed_value(parent, 'cnic', plain)
+
+
 async def get_parents(db: AsyncSession, skip: int = 0, limit: int = 100):
     q = select(models.Parent).offset(skip).limit(limit).order_by(desc(models.Parent.created_at))
     result = await db.execute(q)
-    return result.scalars().all()
+    parents = result.scalars().all()
+    for p in parents:
+        _decrypt_parent_cnic(p)
+    return parents
 
 
 async def get_parent(db: AsyncSession, parent_id: int):
@@ -89,14 +189,34 @@ async def get_parent(db: AsyncSession, parent_id: int):
         selectinload(models.Parent.student_links).selectinload(models.StudentParentRel.student)
     ).where(models.Parent.id == parent_id)
     result = await db.execute(q)
-    return result.scalar_one_or_none()
+    parent = result.scalar_one_or_none()
+    _decrypt_parent_cnic(parent)
+    return parent
 
 
 async def create_parent(db: AsyncSession, data: schemas.ParentCreate):
-    parent = models.Parent(**data.model_dump())
+    # Check duplicate via hash before encrypting
+    cnic_hash = hash_for_dedup(data.cnic)
+    existing = await db.execute(
+        select(models.Parent).where(models.Parent.cnic_hash == cnic_hash)
+    )
+    if existing.scalar_one_or_none():
+        raise ValueError("Parent with this CNIC already exists")
+
+    parent = models.Parent(
+        guardian_name=data.guardian_name,
+        cnic=encrypt_field(data.cnic),
+        cnic_hash=cnic_hash,
+        contact_no=data.contact_no,
+        whatsapp_no=data.whatsapp_no,
+        address=data.address,
+    )
     db.add(parent)
     await db.flush()
     await db.refresh(parent)
+    # Decrypt for response — use set_committed_value to avoid writing plaintext back
+    plain = decrypt_field(parent.cnic)
+    set_committed_value(parent, 'cnic', plain)
     return parent
 
 
@@ -107,6 +227,8 @@ async def update_parent(db: AsyncSession, parent_id: int, data: schemas.ParentUp
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(parent, field, value)
     await db.flush()
+    # Re-fetch to get clean decrypted response
+    parent = await get_parent(db, parent_id)
     return parent
 
 

@@ -6,7 +6,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
-from app.models import StudentStatus, InvoiceStatus, Relationship
+from app.models import StudentStatus, InvoiceStatus, Relationship, UserRole
 
 
 # ─── Shared Config ────────────────────────────────────────────────────────────
@@ -211,3 +211,38 @@ class DashboardStats(BaseModel):
     overdue_invoices: int
     total_collected_this_month: Decimal
     total_pending_amount: Decimal
+
+
+# ─── Authentication ────────────────────────────────────────────────────────────
+
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: str = Field(..., max_length=120)
+    password: str = Field(..., min_length=6, max_length=128)
+    full_name: Optional[str] = None
+    role: UserRole = UserRole.STAFF
+
+
+class UserOut(OrmBase):
+    id: int
+    username: str
+    email: str
+    full_name: Optional[str]
+    role: UserRole
+    is_active: bool
+    is_superuser: bool
+    created_at: datetime
+
+
+class UserRoleUpdate(BaseModel):
+    role: UserRole
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str

@@ -1,15 +1,19 @@
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, UserCheck, DollarSign,
-  FileText, CreditCard, GraduationCap, Menu, X
+  FileText, CreditCard, GraduationCap, Menu, X,
+  LogOut, User as UserIcon, Shield
 } from 'lucide-react'
 import { useState } from 'react'
+import { useAuth } from './contexts/AuthContext'
 import Dashboard from './pages/Dashboard'
 import Students from './pages/Students'
 import Parents from './pages/Parents'
 import Fees from './pages/Fees'
 import Invoices from './pages/Invoices'
 import Payments from './pages/Payments'
+import Login from './pages/Login'
+import { PageLoader } from './components/UI'
 
 const navItems = [
   { to: '/',          icon: LayoutDashboard, label: 'Dashboard' },
@@ -23,7 +27,27 @@ const navItems = [
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+  const { isAuthenticated, loading, user, logout } = useAuth()
 
+  // ─── Loading screen ──────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-slate-950">
+        <PageLoader />
+      </div>
+    )
+  }
+
+  // ─── Not authenticated — show login ─────────────────────────────────────
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/*" element={<Login />} />
+      </Routes>
+    )
+  }
+
+  // ─── Authenticated — show app ───────────────────────────────────────────
   const currentPage = navItems.find(n =>
     n.to === '/' ? location.pathname === '/' : location.pathname.startsWith(n.to)
   )
@@ -78,9 +102,33 @@ export default function App() {
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-800/60">
-          <p className="text-xs text-slate-600">v1.0.0 · FastAPI + Neon DB</p>
+        {/* User info & Logout */}
+        <div className="border-t border-slate-800/60 px-4 py-4 space-y-3">
+          <div className="flex items-center gap-3 px-2">
+            <div className="w-8 h-8 rounded-xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
+              <UserIcon size={15} className="text-brand-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-slate-200 truncate">{user?.full_name || user?.username}</p>
+              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+              <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                user?.role === 'admin'
+                  ? 'text-brand-400 bg-brand-500/10 border border-brand-500/20'
+                  : 'text-slate-400 bg-slate-800/60 border border-slate-700/60'
+              }`}>
+                <Shield size={10} />
+                {user?.role === 'admin' ? 'Admin' : 'Staff'}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium
+                       text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+          >
+            <LogOut size={16} className="flex-shrink-0" />
+            Sign Out
+          </button>
         </div>
       </aside>
 
@@ -109,6 +157,11 @@ export default function App() {
             <p className="text-xs text-slate-500 hidden sm:block">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
+          </div>
+          <div className="flex-1" />
+          <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            {user?.username}
           </div>
         </header>
 
