@@ -2,8 +2,12 @@
 School Management System — FastAPI Application
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from app.config import settings
 from app.routers import (
     auth_router,
@@ -16,15 +20,22 @@ from app.routers import (
     dashboard_router,
 )
 
+# ─── Rate Limiter (shared instance) ──────────────────────────────────────────
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title=settings.APP_NAME,
     description="REST API for School Management System",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if settings.DEBUG else None,   # hide docs in production
+    redoc_url="/redoc" if settings.DEBUG else None,
 )
 
-# CORS — allow React frontend
+# Attach the limiter to the app state so routers can use it
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ─── CORS ─────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.origins_list,
@@ -33,7 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers — auth router first so /auth endpoints don't need protection
+# ─── Routers ──────────────────────────────────────────────────────────────────
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")

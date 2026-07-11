@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search, UserCheck, Edit2, Phone } from 'lucide-react'
+import { Plus, Search, UserCheck, Edit2, Phone, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useAuth } from '../contexts/AuthContext'
 import { parentsApi } from '../api'
-import { SectionHeader, Table, Modal, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
+import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
 
 const emptyForm = {
   guardian_name: '', cnic: '', contact_no: '',
@@ -10,26 +11,32 @@ const emptyForm = {
 }
 
 export default function Parents() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [parents, setParents] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [skip, setSkip] = useState(0)
+  const limit = 50
   const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [selected, setSelected] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [parentToDelete, setParentToDelete] = useState(null)
 
   const load = async () => {
     setLoading(true)
     try {
-      const res = await parentsApi.list({ limit: 200 })
+      const res = await parentsApi.list({ skip, limit })
       setParents(res.data)
     } catch { toast.error('Failed to load parents') }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [skip])
 
   const filtered = parents.filter(p =>
     `${p.guardian_name} ${p.cnic} ${p.contact_no}`
@@ -37,6 +44,12 @@ export default function Parents() {
   )
 
   const handleCreate = async () => {
+    if (!form.guardian_name || !form.contact_no) {
+      return toast.error('Name and Contact Number are required')
+    }
+    if (form.cnic && !/^\d{5}-\d{7}-\d$/.test(form.cnic)) {
+      return toast.error('CNIC must follow 00000-0000000-0 format')
+    }
     setSaving(true)
     try {
       await parentsApi.create({ ...form, whatsapp_no: form.whatsapp_no || null, address: form.address || null })
@@ -50,6 +63,9 @@ export default function Parents() {
   }
 
   const handleEdit = async () => {
+    if (!editForm.guardian_name || !editForm.contact_no) {
+      return toast.error('Name and Contact Number are required')
+    }
     setSaving(true)
     try {
       await parentsApi.update(selected.id, editForm)
@@ -60,15 +76,31 @@ export default function Parents() {
     finally { setSaving(false) }
   }
 
+  const handleDeleteClick = (parent) => {
+    setParentToDelete(parent)
+    setConfirmDeleteOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!parentToDelete) return
+    try {
+      await parentsApi.delete(parentToDelete.id)
+      toast.success('Parent deleted')
+      load()
+    } catch { toast.error('Failed to delete parent (may be linked to students)') }
+  }
+
   return (
     <div className="animate-fade-in">
       <SectionHeader
         title="Parents / Guardians"
         description={`${parents.length} registered guardians`}
         action={
-          <button onClick={() => setCreateOpen(true)} className="btn-primary">
-            <Plus size={16} /> Add Parent
-          </button>
+          isAdmin && (
+            <button onClick={() => setCreateOpen(true)} className="btn-primary">
+              <Plus size={16} /> Add Parent
+            </button>
+          )
         }
       />
 
@@ -88,7 +120,13 @@ export default function Parents() {
           empty={filtered.length === 0 && (
             <EmptyState icon={UserCheck} title="No parents found"
               description="Add guardians to link them with students"
-              action={<button onClick={() => setCreateOpen(true)} className="btn-primary"><Plus size={15} />Add Parent</button>}
+              action={
+                isAdmin && (
+                  <button onClick={() => setCreateOpen(true)} className="btn-primary">
+                    <Plus size={15} />Add Parent
+                  </button>
+                )
+              }
             />
           )}
         >
@@ -104,16 +142,38 @@ export default function Parents() {
               <td className="td text-slate-400">{p.whatsapp_no || '—'}</td>
               <td className="td text-slate-400 max-w-xs truncate">{p.address || '—'}</td>
               <td className="td">
-                <button
-                  onClick={() => { setSelected(p); setEditForm({ guardian_name: p.guardian_name, contact_no: p.contact_no, whatsapp_no: p.whatsapp_no || '', address: p.address || '' }); setEditOpen(true) }}
-                  className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
-                >
-                  <Edit2 size={14} />
-                </button>
+                {isAdmin && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => { setSelected(p); setEditForm({ guardian_name: p.guardian_name, contact_no: p.contact_no, whatsapp_no: p.whatsapp_no || '', address: p.address || '' }); setEditOpen(true) }}
+                      className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
+                      title="Edit"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteClick(p)} 
+                      className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" 
+                      title="Delete"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
               </td>
             </tr>
           ))}
         </Table>
+      )}
+
+      {!loading && (
+        <Pagination 
+          skip={skip} 
+          limit={limit} 
+          totalItemsInCurrentPage={parents.length} 
+          onNext={() => setSkip(skip + limit)} 
+          onPrev={() => setSkip(Math.max(0, skip - limit))} 
+        />
       )}
 
       {/* Create Modal */}
@@ -170,6 +230,17 @@ export default function Parents() {
           </button>
         </div>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Parent"
+        message={parentToDelete ? `Are you sure you want to delete ${parentToDelete.guardian_name}?` : ''}
+        confirmText="Delete"
+        isDestructive={true}
+      />
     </div>
   )
 }

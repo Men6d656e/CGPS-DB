@@ -18,6 +18,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null)
+  const [chartData, setChartData] = useState([])
   const [recentInvoices, setRecentInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -25,12 +26,21 @@ export default function Dashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [statsRes, invoicesRes] = await Promise.all([
+        const [statsRes, invoicesRes, collectionsRes] = await Promise.all([
           dashboardApi.stats(),
           invoicesApi.list({ limit: 6 }),
+          dashboardApi.monthlyCollections(6),
         ])
         setStats(statsRes.data)
         setRecentInvoices(invoicesRes.data)
+        
+        // Format the month (e.g. "2026-04" -> "Apr")
+        const formattedChartData = collectionsRes.data.map(item => {
+          const date = new Date(item.month + '-01')
+          const monthName = date.toLocaleString('default', { month: 'short' })
+          return { month: monthName, amount: Number(item.amount) }
+        })
+        setChartData(formattedChartData)
       } catch (e) {
         setError('Failed to load dashboard data. Is the backend running?')
       } finally {
@@ -43,15 +53,7 @@ export default function Dashboard() {
   if (loading) return <PageLoader />
   if (error) return <div className="mt-4"><ErrorAlert message={error} /></div>
 
-  // Mock monthly chart data (replace with real endpoint if you add it)
-  const chartData = [
-    { month: 'Nov', amount: 42000 },
-    { month: 'Dec', amount: 38000 },
-    { month: 'Jan', amount: 55000 },
-    { month: 'Feb', amount: 48000 },
-    { month: 'Mar', amount: 61000 },
-    { month: 'Apr', amount: Number(stats.total_collected_this_month) || 45000 },
-  ]
+  // Real chart data is loaded from API now
 
   return (
     <div className="space-y-6 animate-fade-in">

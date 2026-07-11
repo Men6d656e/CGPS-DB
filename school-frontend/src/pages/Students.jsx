@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Plus, Search, Users, Edit2, Trash2, Link, Eye } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useAuth } from '../contexts/AuthContext'
 import { studentsApi, parentsApi } from '../api'
 import {
-  SectionHeader, Table, Modal, Field, Select, StatusBadge,
+  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, StatusBadge,
   PageLoader, EmptyState, Spinner
 } from '../components/UI'
 
@@ -15,15 +16,21 @@ const emptyForm = {
 }
 
 export default function Students() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [skip, setSkip] = useState(0)
+  const limit = 50
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [linkOpen, setLinkOpen] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [studentToDelete, setStudentToDelete] = useState(null)
 
   const [form, setForm] = useState(emptyForm)
   const [editForm, setEditForm] = useState({})
@@ -36,13 +43,17 @@ export default function Students() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await studentsApi.list({ status: statusFilter || undefined, limit: 200 })
+      const res = await studentsApi.list({ status: statusFilter || undefined, skip, limit })
       setStudents(res.data)
     } catch { toast.error('Failed to load students') }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [statusFilter])
+  useEffect(() => { 
+    setSkip(0)
+  }, [statusFilter])
+
+  useEffect(() => { load() }, [statusFilter, skip])
 
   const filtered = students.filter(s =>
     `${s.first_name} ${s.last_name} ${s.cnic_bform} ${s.current_class}`
@@ -50,6 +61,12 @@ export default function Students() {
   )
 
   const handleCreate = async () => {
+    if (!form.first_name || !form.last_name || !form.cnic_bform || !form.dob || !form.admission_date) {
+      return toast.error('Please fill all required fields')
+    }
+    if (!/^\d{5}-\d{7}-\d$/.test(form.cnic_bform)) {
+      return toast.error('B-Form / CNIC must follow 00000-0000000-0 format')
+    }
     setSaving(true)
     try {
       await studentsApi.create(form)
@@ -63,6 +80,12 @@ export default function Students() {
   }
 
   const handleEdit = async () => {
+    if (!editForm.first_name || !editForm.last_name || !editForm.cnic_bform || !editForm.dob || !editForm.admission_date) {
+      return toast.error('Please fill all required fields')
+    }
+    if (!/^\d{5}-\d{7}-\d$/.test(editForm.cnic_bform)) {
+      return toast.error('B-Form / CNIC must follow 00000-0000000-0 format')
+    }
     setSaving(true)
     try {
       await studentsApi.update(selected.id, editForm)
@@ -73,10 +96,15 @@ export default function Students() {
     finally { setSaving(false) }
   }
 
-  const handleDelete = async (student) => {
-    if (!confirm(`Delete ${student.first_name} ${student.last_name}?`)) return
+  const handleDeleteClick = (student) => {
+    setStudentToDelete(student)
+    setConfirmDeleteOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!studentToDelete) return
     try {
-      await studentsApi.delete(student.id)
+      await studentsApi.delete(studentToDelete.id)
       toast.success('Student deleted')
       load()
     } catch { toast.error('Failed to delete') }
@@ -114,12 +142,14 @@ export default function Students() {
   return (
     <div className="animate-fade-in">
       <SectionHeader
-        title="Students"
-        description={`${students.length} total students`}
+        title="Students Directory"
+        description={`${students.length} students currently listed`}
         action={
-          <button onClick={() => setCreateOpen(true)} className="btn-primary">
-            <Plus size={16} /> Add Student
-          </button>
+          isAdmin && (
+            <button onClick={() => setCreateOpen(true)} className="btn-primary">
+              <Plus size={16} /> Add Student
+            </button>
+          )
         }
       />
 
@@ -147,10 +177,14 @@ export default function Students() {
           headers={['Name', 'Class', 'CNIC/B-Form', 'Admission', 'Status', 'Actions']}
           empty={filtered.length === 0 && (
             <EmptyState icon={Users} title="No students found"
-              description="Add your first student to get started"
-              action={<button onClick={() => setCreateOpen(true)} className="btn-primary">
-                <Plus size={15} />Add Student
-              </button>}
+              description="Start by adding your first student to the system"
+              action={
+                isAdmin && (
+                  <button onClick={() => setCreateOpen(true)} className="btn-primary">
+                    <Plus size={15} />Add Student
+                  </button>
+                )
+              }
             />
           )}
         >
@@ -163,45 +197,63 @@ export default function Students() {
               <td className="td font-mono text-xs text-slate-400">{s.cnic_bform}</td>
               <td className="td text-slate-400">{s.admission_date}</td>
               <td className="td">
-                <select
-                  value={s.status}
-                  onChange={async (e) => {
-                    try {
-                      await studentsApi.update(s.id, { status: e.target.value });
-                      toast.success('Student status updated!');
-                      load();
-                    } catch (err) {
-                      toast.error('Failed to update status');
-                    }
-                  }}
-                  className={`badge badge-${s.status} cursor-pointer appearance-none outline-none`}
-                  style={{ paddingRight: '0.5rem' }}
-                >
-                  <option value="active" className="bg-slate-900 text-emerald-400">active</option>
-                  <option value="withdrawn" className="bg-slate-900 text-red-400">withdrawn</option>
-                  <option value="graduated" className="bg-slate-900 text-brand-400">graduated</option>
-                </select>
+                {isAdmin ? (
+                  <select
+                    value={s.status}
+                    onChange={async (e) => {
+                      try {
+                        await studentsApi.update(s.id, { status: e.target.value });
+                        toast.success('Student status updated!');
+                        load();
+                      } catch (err) {
+                        toast.error('Failed to update status');
+                      }
+                    }}
+                    className={`badge badge-${s.status} cursor-pointer appearance-none outline-none`}
+                    style={{ paddingRight: '0.5rem' }}
+                  >
+                    <option value="active" className="bg-slate-900 text-emerald-400">active</option>
+                    <option value="withdrawn" className="bg-slate-900 text-red-400">withdrawn</option>
+                    <option value="graduated" className="bg-slate-900 text-brand-400">graduated</option>
+                  </select>
+                ) : (
+                  <span className={`badge badge-${s.status}`}>{s.status}</span>
+                )}
               </td>
               <td className="td">
                 <div className="flex items-center gap-1">
-                  <button onClick={() => openDetail(s)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="View details">
+                  <button onClick={() => openDetail(s)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="View">
                     <Eye size={14} />
                   </button>
-                  <button onClick={() => openLink(s)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Link parent">
-                    <Link size={14} />
-                  </button>
-                  <button onClick={() => { setSelected(s); setEditForm({ first_name: s.first_name, last_name: s.last_name, current_class: s.current_class, status: s.status }); setEditOpen(true) }}
-                    className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Edit">
-                    <Edit2 size={14} />
-                  </button>
-                  <button onClick={() => handleDelete(s)} className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors text-slate-500 hover:text-red-400" title="Delete">
-                    <Trash2 size={14} />
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <button onClick={() => openLink(s)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Link parent">
+                        <Link size={14} />
+                      </button>
+                      <button onClick={() => { setSelected(s); setEditForm({ ...s }); setEditOpen(true) }}
+                        className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Edit">
+                        <Edit2 size={14} />
+                      </button>
+                      <button onClick={() => handleDeleteClick(s)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" title="Delete">
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </td>
             </tr>
           ))}
         </Table>
+      )}
+
+      {!loading && (
+        <Pagination 
+          skip={skip} 
+          limit={limit} 
+          totalItemsInCurrentPage={students.length} 
+          onNext={() => setSkip(skip + limit)} 
+          onPrev={() => setSkip(Math.max(0, skip - limit))} 
+        />
       )}
 
       {/* Create Modal */}
@@ -310,7 +362,9 @@ export default function Students() {
             <Select value={linkData.parent_id} onChange={e => setLinkData({ ...linkData, parent_id: e.target.value })}>
               <option value="">Choose a parent...</option>
               {parents.map(p => (
-                <option key={p.id} value={p.id}>{p.guardian_name} — {p.cnic}</option>
+                <option key={p.id} value={p.id}>
+                  {p.guardian_name} — {p.cnic ? `${p.cnic.slice(0, 5)}-XXXXXXX-${p.cnic.slice(-1)}` : 'No CNIC'}
+                </option>
               ))}
             </Select>
           </Field>
@@ -330,6 +384,17 @@ export default function Students() {
           </button>
         </div>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Student"
+        message={studentToDelete ? `Are you sure you want to delete ${studentToDelete.first_name} ${studentToDelete.last_name}? This action cannot be undone.` : ''}
+        confirmText="Delete"
+        isDestructive={true}
+      />
     </div>
   )
 }

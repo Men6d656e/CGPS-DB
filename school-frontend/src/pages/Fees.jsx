@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react'
 import { Plus, DollarSign, Edit2, ChevronDown, ChevronUp } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { feesApi } from '../api'
+import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
 
 const CLASSES = ['Nursery','KG','1','2','3','4','5','6','7','8','9','10']
 
 export default function Fees() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [fees, setFees] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
@@ -75,18 +78,18 @@ export default function Fees() {
         title="Fee Structure"
         description="Define fee types and per-class overrides"
         action={
-          <button onClick={() => setCreateOpen(true)} className="btn-primary">
-            <Plus size={16} /> Add Fee Type
-          </button>
+          isAdmin && (
+            <button onClick={() => setCreateOpen(true)} className="btn-primary">
+              <Plus size={16} /> Add Fee Type
+            </button>
+          )
         }
       />
 
       {loading ? <PageLoader /> : fees.length === 0 ? (
         <EmptyState icon={DollarSign} title="No fee types yet"
-          description="Add tuition fee, library fee, etc."
-          action={<button onClick={() => setCreateOpen(true)} className="btn-primary"><Plus size={15} />Add Fee Type</button>}
-        />
-      ) : (
+          description="Add tuition fee, library fee, etc."          action={isAdmin && <button onClick={() => setCreateOpen(true)} className="btn-primary"><Plus size={15} />Add Fee Type</button>}
+        />) : (
         <div className="space-y-3">
           {fees.map(fee => (
             <div key={fee.id} className="card overflow-hidden">
@@ -108,29 +111,37 @@ export default function Fees() {
                     <p className="font-mono font-medium text-slate-200">PKR {Number(fee.default_amount).toLocaleString()}</p>
                     <p className="text-xs text-slate-500">default / month</p>
                   </div>
-                  <span 
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        await feesApi.update(fee.id, { is_active: !fee.is_active });
-                        toast.success('Fee status updated!');
-                        load();
-                      } catch (err) {
-                        toast.error('Failed to update status');
-                      }
-                    }}
-                    className={`badge ${fee.is_active ? 'badge-active' : 'badge-withdrawn'} cursor-pointer`}
-                    title="Click to toggle status"
-                  >
-                    {fee.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={e => { e.stopPropagation(); setSelected(fee); setEditForm({ fee_name: fee.fee_name, default_amount: fee.default_amount, description: fee.description || '', is_active: fee.is_active }); setEditOpen(true) }}
-                      className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
+                  {isAdmin ? (
+                    <span 
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await feesApi.update(fee.id, { is_active: !fee.is_active });
+                          toast.success('Fee status updated!');
+                          load();
+                        } catch (err) {
+                          toast.error('Failed to update status');
+                        }
+                      }}
+                      className={`badge ${fee.is_active ? 'badge-active' : 'badge-withdrawn'} cursor-pointer`}
+                      title="Click to toggle status"
                     >
-                      <Edit2 size={14} />
-                    </button>
+                      {fee.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  ) : (
+                    <span className={`badge ${fee.is_active ? 'badge-active' : 'badge-withdrawn'}`}>
+                      {fee.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  )}
+                  <div className="flex items-center gap-1">
+                    {isAdmin && (
+                      <button
+                        onClick={e => { e.stopPropagation(); setSelected(fee); setEditForm({ fee_name: fee.fee_name, default_amount: fee.default_amount, description: fee.description || '', is_active: fee.is_active }); setEditOpen(true) }}
+                        className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                    )}
                     {expanded === fee.id ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
                   </div>
                 </div>
@@ -141,12 +152,14 @@ export default function Fees() {
                 <div className="border-t border-slate-800/60 bg-slate-900/50 px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Class-specific Overrides</p>
-                    <button
-                      onClick={() => { setSelected(fee); setOverrideOpen(true) }}
-                      className="btn-secondary text-xs py-1.5 px-3"
-                    >
-                      <Plus size={12} /> Add Override
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => { setSelected(fee); setOverrideOpen(true) }}
+                        className="btn-secondary text-xs py-1.5 px-3"
+                      >
+                        <Plus size={12} /> Add Override
+                      </button>
+                    )}
                   </div>
                   {fee.class_overrides.length === 0 ? (
                     <p className="text-sm text-slate-500">No overrides — all classes use default amount</p>

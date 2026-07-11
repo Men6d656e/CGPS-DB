@@ -10,16 +10,11 @@ export function AuthProvider({ children }) {
   // ─── Restore session on mount ──────────────────────────────────────────────
   useEffect(() => {
     const restore = async () => {
-      const saved = localStorage.getItem('access_token')
-      if (!saved) {
-        setLoading(false)
-        return
-      }
       try {
         const res = await api.get('/auth/me')
         setUser(res.data)
       } catch {
-        localStorage.removeItem('access_token')
+        setUser(null)
       } finally {
         setLoading(false)
       }
@@ -29,18 +24,22 @@ export function AuthProvider({ children }) {
 
   // ─── Login ─────────────────────────────────────────────────────────────────
   const login = useCallback(async (username, password) => {
-    const res = await api.post('/auth/login', { username, password })
-    const { access_token } = res.data
-    localStorage.setItem('access_token', access_token)
+    await api.post('/auth/login', { username, password })
     const userRes = await api.get('/auth/me')
     setUser(userRes.data)
     return userRes.data
   }, [])
 
   // ─── Logout ────────────────────────────────────────────────────────────────
-  const logout = useCallback(() => {
-    localStorage.removeItem('access_token')
-    setUser(null)
+  const logout = useCallback(async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // Ignore errors on logout
+    } finally {
+      setUser(null)
+      window.location.href = '/login'
+    }
   }, [])
 
   return (

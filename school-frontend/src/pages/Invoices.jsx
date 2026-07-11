@@ -1,22 +1,30 @@
 import { useEffect, useState } from 'react'
 import { Plus, FileText, Eye, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useAuth } from '../contexts/AuthContext'
 import { invoicesApi, studentsApi, feesApi } from '../api'
 import {
-  SectionHeader, Table, Modal, Field, Select, StatusBadge,
+  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, StatusBadge,
   PageLoader, EmptyState, Spinner
 } from '../components/UI'
 
 export default function Invoices() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
+  const [skip, setSkip] = useState(0)
+  const limit = 50
   const [createOpen, setCreateOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selected, setSelected] = useState(null)
   const [students, setStudents] = useState([])
   const [feeTypes, setFeeTypes] = useState([])
   const [saving, setSaving] = useState(false)
+  const [confirmOverdueOpen, setConfirmOverdueOpen] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [invoiceToAction, setInvoiceToAction] = useState(null)
 
   const [form, setForm] = useState({
     student_id: '',
@@ -28,13 +36,15 @@ export default function Invoices() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await invoicesApi.list({ status: statusFilter || undefined, limit: 200 })
+      const res = await invoicesApi.list({ status: statusFilter || undefined, skip, limit })
       setInvoices(res.data)
     } catch { toast.error('Failed to load invoices') }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [statusFilter])
+  useEffect(() => { setSkip(0) }, [statusFilter])
+  
+  useEffect(() => { load() }, [statusFilter, skip])
 
   const loadFormData = async () => {
     const [sRes, fRes] = await Promise.all([
@@ -85,12 +95,32 @@ export default function Invoices() {
     } finally { setSaving(false) }
   }
 
-  const updateStatus = async (inv, status) => {
+  const handleOverdueClick = (invoice) => {
+    setInvoiceToAction(invoice)
+    setConfirmOverdueOpen(true)
+  }
+
+  const handleConfirmOverdue = async () => {
+    if (!invoiceToAction) return
     try {
-      await invoicesApi.updateStatus(inv.id, status)
-      toast.success(`Marked as ${status}`)
+      await invoicesApi.updateStatus(invoiceToAction.id, 'overdue')
+      toast.success('Marked as overdue')
       load()
     } catch { toast.error('Failed to update status') }
+  }
+
+  const handleDeleteClick = (invoice) => {
+    setInvoiceToAction(invoice)
+    setConfirmDeleteOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!invoiceToAction) return
+    try {
+      await invoicesApi.delete(invoiceToAction.id)
+      toast.success('Invoice deleted')
+      load()
+    } catch { toast.error('Failed to delete invoice') }
   }
 
   const totalForInvoice = (inv) => Number(inv.total_amount || 0)
@@ -104,12 +134,14 @@ export default function Invoices() {
   return (
     <div className="animate-fade-in">
       <SectionHeader
-        title="Invoices"
-        description="Monthly fee bills for students"
+        title="Invoices & Billing"
+        description="Manage student fee invoices"
         action={
-          <button onClick={openCreate} className="btn-primary">
-            <Plus size={16} /> Create Invoice
-          </button>
+          isAdmin && (
+            <button onClick={openCreate} className="btn-primary">
+              <Plus size={16} /> Create Invoice
+            </button>
+          )
         }
       />
 
@@ -144,9 +176,15 @@ export default function Invoices() {
         <Table
           headers={['Invoice #', 'Student', 'Month', 'Total', 'Paid', 'Balance', 'Due Date', 'Status', 'Actions']}
           empty={invoices.length === 0 && (
-            <EmptyState icon={FileText} title="No invoices yet"
-              description="Create the first monthly invoice"
-              action={<button onClick={openCreate} className="btn-primary"><Plus size={15} />Create Invoice</button>}
+            <EmptyState icon={FileText} title="No invoices found"
+              description="Create an invoice to start billing"
+              action={
+                isAdmin && (
+                  <button onClick={openCreate} className="btn-primary">
+                    <Plus size={15} />Create Invoice
+                  </button>
+                )
+              }
             />
           )}
         >
@@ -168,10 +206,15 @@ export default function Invoices() {
                     className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="View">
                     <Eye size={14} />
                   </button>
-                  {inv.status !== 'paid' && (
-                    <button onClick={() => updateStatus(inv, 'overdue')}
+                  {isAdmin && inv.status !== 'paid' && (
+                    <button onClick={() => handleOverdueClick(inv)}
                       className="text-xs px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors border border-red-500/20">
                       Overdue
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button onClick={() => handleDeleteClick(inv)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" title="Delete">
+                      <Trash2 size={16} />
                     </button>
                   )}
                 </div>
@@ -179,6 +222,16 @@ export default function Invoices() {
             </tr>
           ))}
         </Table>
+      )}
+
+      {!loading && (
+        <Pagination 
+          skip={skip} 
+          limit={limit} 
+          totalItemsInCurrentPage={invoices.length} 
+          onNext={() => setSkip(skip + limit)} 
+          onPrev={() => setSkip(Math.max(0, skip - limit))} 
+        />
       )}
 
       {/* Create Invoice Modal */}
@@ -298,6 +351,28 @@ export default function Invoices() {
           </div>
         )}
       </Modal>
+
+      {/* Overdue Confirmation Modal */}
+      <ConfirmModal
+        open={confirmOverdueOpen}
+        onClose={() => setConfirmOverdueOpen(false)}
+        onConfirm={handleConfirmOverdue}
+        title="Mark as Overdue"
+        message={invoiceToAction ? `Are you sure you want to mark Invoice #${String(invoiceToAction.id).padStart(4, '0')} as overdue?` : ''}
+        confirmText="Mark Overdue"
+        isDestructive={true}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Invoice"
+        message={invoiceToAction ? `Are you sure you want to delete Invoice #${String(invoiceToAction.id).padStart(4, '0')}? This action cannot be undone and will delete all associated payments.` : ''}
+        confirmText="Delete"
+        isDestructive={true}
+      />
     </div>
   )
 }

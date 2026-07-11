@@ -12,6 +12,7 @@ import Parents from './pages/Parents'
 import Fees from './pages/Fees'
 import Invoices from './pages/Invoices'
 import Payments from './pages/Payments'
+import Users from './pages/Users'
 import Login from './pages/Login'
 import { PageLoader } from './components/UI'
 
@@ -22,6 +23,7 @@ const navItems = [
   { to: '/fees',      icon: DollarSign,      label: 'Fee Types' },
   { to: '/invoices',  icon: FileText,        label: 'Invoices' },
   { to: '/payments',  icon: CreditCard,      label: 'Payments' },
+  { to: '/users',     icon: Shield,          label: 'Users', adminOnly: true },
 ]
 
 export default function App() {
@@ -81,7 +83,9 @@ export default function App() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {navItems
+            .filter(item => !item.adminOnly || user?.role === 'admin')
+            .map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
@@ -175,6 +179,7 @@ export default function App() {
               <Route path="/fees"      element={<Fees />} />
               <Route path="/invoices"  element={<Invoices />} />
               <Route path="/payments"  element={<Payments />} />
+              <Route path="/users"     element={<Users />} />
             </Routes>
           </div>
         </main>

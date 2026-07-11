@@ -2,9 +2,9 @@
 CRUD Operations — Database logic separated from routes
 """
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
-from sqlalchemy import select, func, and_, desc
+from sqlalchemy import select, func, and_, desc, text
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
@@ -57,6 +57,15 @@ async def update_user_role(db: AsyncSession, user_id: int, role: schemas.UserRol
     return user
 
 
+async def update_user_password(db: AsyncSession, user_id: int, new_password: str):
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        return None
+    user.hashed_password = get_password_hash(new_password)
+    await db.flush()
+    return user
+
+
 async def get_user_by_id(db: AsyncSession, user_id: int):
     q = select(models.User).where(models.User.id == user_id)
     result = await db.execute(q)
@@ -69,11 +78,10 @@ def _decrypt_student_cnic(student: models.Student):
     """Decrypt the cnic_bform on a Student object without marking it as dirty."""
     if student and student.cnic_bform:
         plain = decrypt_field(student.cnic_bform)
-        # Use set_committed_value so SQLAlchemy doesn't flush plaintext back to DB
         set_committed_value(student, 'cnic_bform', plain)
 
 
-async def get_students(db: AsyncSession, skip: int = 0, limit: int = 100, status: str = None):
+async def get_students(db: AsyncSession, skip: int = 0, limit: int = 50, status: str = None):
     q = select(models.Student).options(
         selectinload(models.Student.parent_links).selectinload(models.StudentParentRel.parent)
     )
@@ -99,7 +107,6 @@ async def get_student(db: AsyncSession, student_id: int):
 
 
 async def create_student(db: AsyncSession, data: schemas.StudentCreate):
-    # Check duplicate via hash before encrypting
     cnic_hash = hash_for_dedup(data.cnic_bform)
     existing = await db.execute(
         select(models.Student).where(models.Student.cnic_bform_hash == cnic_hash)
@@ -120,7 +127,6 @@ async def create_student(db: AsyncSession, data: schemas.StudentCreate):
     db.add(student)
     await db.flush()
     await db.refresh(student)
-    # Decrypt for response — use set_committed_value to avoid writing plaintext back
     plain = decrypt_field(student.cnic_bform)
     set_committed_value(student, 'cnic_bform', plain)
     return student
@@ -130,12 +136,12 @@ async def update_student(db: AsyncSession, student_id: int, data: schemas.Studen
     student = await get_student(db, student_id)
     if not student:
         return None
+    # Explicitly exclude cnic_bform — it should never be updated via PATCH
+    safe_fields = {"first_name", "last_name", "current_class", "status"}
     for field, value in data.model_dump(exclude_none=True).items():
-        setattr(student, field, value)
+        if field in safe_fields:
+            setattr(student, field, value)
     await db.flush()
-    # Decrypt for response — use set_committed_value to avoid writing plaintext back
-    # (get_student already decrypted via _decrypt_student_cnic, but flush may have
-    # reloaded the encrypted value; re-decrypt safely)
     student = await get_student(db, student_id)
     return student
 
@@ -150,11 +156,9 @@ async def delete_student(db: AsyncSession, student_id: int):
 
 async def get_siblings(db: AsyncSession, student_id: int):
     """Get siblings: students sharing at least one parent."""
-    # Get parent IDs of this student
     parent_ids_q = select(models.StudentParentRel.parent_id).where(
         models.StudentParentRel.student_id == student_id
     )
-    # Get student IDs linked to those parents (excluding the student itself)
     sibling_ids_q = select(models.StudentParentRel.student_id).where(
         and_(
             models.StudentParentRel.parent_id.in_(parent_ids_q),
@@ -175,7 +179,7 @@ def _decrypt_parent_cnic(parent: models.Parent):
         set_committed_value(parent, 'cnic', plain)
 
 
-async def get_parents(db: AsyncSession, skip: int = 0, limit: int = 100):
+async def get_parents(db: AsyncSession, skip: int = 0, limit: int = 50):
     q = select(models.Parent).offset(skip).limit(limit).order_by(desc(models.Parent.created_at))
     result = await db.execute(q)
     parents = result.scalars().all()
@@ -195,7 +199,6 @@ async def get_parent(db: AsyncSession, parent_id: int):
 
 
 async def create_parent(db: AsyncSession, data: schemas.ParentCreate):
-    # Check duplicate via hash before encrypting
     cnic_hash = hash_for_dedup(data.cnic)
     existing = await db.execute(
         select(models.Parent).where(models.Parent.cnic_hash == cnic_hash)
@@ -214,7 +217,6 @@ async def create_parent(db: AsyncSession, data: schemas.ParentCreate):
     db.add(parent)
     await db.flush()
     await db.refresh(parent)
-    # Decrypt for response — use set_committed_value to avoid writing plaintext back
     plain = decrypt_field(parent.cnic)
     set_committed_value(parent, 'cnic', plain)
     return parent
@@ -227,8 +229,16 @@ async def update_parent(db: AsyncSession, parent_id: int, data: schemas.ParentUp
     for field, value in data.model_dump(exclude_none=True).items():
         setattr(parent, field, value)
     await db.flush()
-    # Re-fetch to get clean decrypted response
     parent = await get_parent(db, parent_id)
+    return parent
+
+
+async def delete_parent(db: AsyncSession, parent_id: int):
+    """Delete a parent record."""
+    parent = await get_parent(db, parent_id)
+    if parent:
+        await db.delete(parent)
+        await db.flush()
     return parent
 
 
@@ -302,8 +312,10 @@ async def add_class_override(db: AsyncSession, fee_type_id: int, data: schemas.F
 
 # ─── Invoices ─────────────────────────────────────────────────────────────────
 
-def _attach_invoice_financials(invoice: models.Invoice) -> dict:
-    """Compute total_amount, amount_paid, balance_due in memory using loaded relationships."""
+def attach_invoice_financials(invoice: models.Invoice) -> dict:
+    """Compute total_amount, amount_paid, balance_due from loaded relationships.
+    (Renamed from _attach_invoice_financials to make it a proper public function.)
+    """
     total = sum(item.amount for item in invoice.line_items)
     paid = sum(p.amount_paid for p in invoice.payments)
     balance = Decimal(str(total)) - Decimal(str(paid))
@@ -311,7 +323,7 @@ def _attach_invoice_financials(invoice: models.Invoice) -> dict:
 
 
 async def get_invoices(db: AsyncSession, student_id: int = None, status: str = None,
-                       skip: int = 0, limit: int = 100):
+                       skip: int = 0, limit: int = 50):
     q = select(models.Invoice).options(
         selectinload(models.Invoice.line_items).selectinload(models.InvoiceLineItem.fee_type),
         selectinload(models.Invoice.student),
@@ -337,15 +349,21 @@ async def get_invoice(db: AsyncSession, invoice_id: int):
 
 
 async def create_invoice(db: AsyncSession, data: schemas.InvoiceCreate):
+    """Create an invoice + all line items atomically using a single flush."""
     line_items_data = data.line_items
     invoice_data = data.model_dump(exclude={"line_items"})
     invoice = models.Invoice(**invoice_data)
     db.add(invoice)
-    await db.flush()
+    # Add all line items to the session before flushing — single atomic operation
+    line_item_objects = []
     for item in line_items_data:
-        li = models.InvoiceLineItem(invoice_id=invoice.id, **item.model_dump())
+        li = models.InvoiceLineItem(invoice_id=None, **item.model_dump())
+        line_item_objects.append(li)
+    await db.flush()  # get invoice.id
+    for li in line_item_objects:
+        li.invoice_id = invoice.id
         db.add(li)
-    await db.flush()
+    await db.flush()  # persist all line items
     return await get_invoice(db, invoice.id)
 
 
@@ -358,9 +376,18 @@ async def update_invoice_status(db: AsyncSession, invoice_id: int, status: schem
     return invoice
 
 
+async def delete_invoice(db: AsyncSession, invoice_id: int):
+    """Delete an invoice (cascade deletes line items and payments)."""
+    invoice = await get_invoice(db, invoice_id)
+    if invoice:
+        await db.delete(invoice)
+        await db.flush()
+    return invoice
+
+
 # ─── Payments ─────────────────────────────────────────────────────────────────
 
-async def get_payments(db: AsyncSession, invoice_id: int = None, skip: int = 0, limit: int = 100):
+async def get_payments(db: AsyncSession, invoice_id: int = None, skip: int = 0, limit: int = 50):
     q = select(models.Payment)
     if invoice_id:
         q = q.where(models.Payment.invoice_id == invoice_id)
@@ -370,6 +397,20 @@ async def get_payments(db: AsyncSession, invoice_id: int = None, skip: int = 0, 
 
 
 async def create_payment(db: AsyncSession, data: schemas.PaymentCreate):
+    # Load invoice first to check the balance
+    invoice = await get_invoice(db, data.invoice_id)
+    if not invoice:
+        raise ValueError("Invoice not found")
+
+    financials = attach_invoice_financials(invoice)
+    balance = Decimal(str(financials["balance_due"]))
+
+    # ── Fix 7: Prevent overpayment ───────────────────────────────────────────
+    if Decimal(str(data.amount_paid)) > balance:
+        raise ValueError(
+            f"Payment amount ({data.amount_paid}) exceeds outstanding balance ({balance})"
+        )
+
     payment = models.Payment(**data.model_dump())
     db.add(payment)
     await db.flush()
@@ -377,9 +418,9 @@ async def create_payment(db: AsyncSession, data: schemas.PaymentCreate):
     # Auto-update invoice status
     invoice = await get_invoice(db, data.invoice_id)
     if invoice:
-        financials = _attach_invoice_financials(invoice)
-        total = Decimal(str(financials["total_amount"]))
-        paid = Decimal(str(financials["amount_paid"]))
+        fin = attach_invoice_financials(invoice)
+        total = Decimal(str(fin["total_amount"]))
+        paid = Decimal(str(fin["amount_paid"]))
         if paid >= total:
             invoice.status = models.InvoiceStatus.PAID
         elif paid > 0:
@@ -390,10 +431,36 @@ async def create_payment(db: AsyncSession, data: schemas.PaymentCreate):
     return payment
 
 
+async def delete_payment(db: AsyncSession, payment_id: int):
+    """Void/delete a payment and recalculate invoice status."""
+    q = select(models.Payment).where(models.Payment.id == payment_id)
+    result = await db.execute(q)
+    payment = result.scalar_one_or_none()
+    if not payment:
+        return None
+
+    invoice_id = payment.invoice_id
+    await db.delete(payment)
+    await db.flush()
+
+    # Recalculate invoice status after voiding payment
+    invoice = await get_invoice(db, invoice_id)
+    if invoice:
+        fin = attach_invoice_financials(invoice)
+        total = Decimal(str(fin["total_amount"]))
+        paid = Decimal(str(fin["amount_paid"]))
+        if paid <= 0:
+            invoice.status = models.InvoiceStatus.PENDING
+        elif paid < total:
+            invoice.status = models.InvoiceStatus.PARTIAL
+        await db.flush()
+
+    return payment
+
+
 # ─── Dashboard ────────────────────────────────────────────────────────────────
 
 async def get_dashboard_stats(db: AsyncSession) -> schemas.DashboardStats:
-    from datetime import datetime
     current_month = datetime.now().strftime("%Y-%m")
 
     total_students = (await db.execute(select(func.count(models.Student.id)))).scalar()
@@ -408,13 +475,11 @@ async def get_dashboard_stats(db: AsyncSession) -> schemas.DashboardStats:
         select(func.count(models.Invoice.id)).where(models.Invoice.status == "overdue")
     )).scalar()
 
-    # Total collected this month
     collected_q = select(func.coalesce(func.sum(models.Payment.amount_paid), 0)).join(
         models.Invoice, models.Payment.invoice_id == models.Invoice.id
     ).where(models.Invoice.billing_month == current_month)
     collected = (await db.execute(collected_q)).scalar()
 
-    # Total pending amount (sum of line items minus payments for pending/partial invoices)
     pending_total_q = select(
         func.coalesce(func.sum(models.InvoiceLineItem.amount), 0)
     ).join(
@@ -438,3 +503,20 @@ async def get_dashboard_stats(db: AsyncSession) -> schemas.DashboardStats:
         total_collected_this_month=Decimal(str(collected)),
         total_pending_amount=Decimal(str(pending_total)) - Decimal(str(paid_partial)),
     )
+
+
+async def get_monthly_collections(db: AsyncSession, months: int = 6) -> list[schemas.MonthlyCollection]:
+    """Return total payments collected per billing month for the last N months."""
+    q = (
+        select(
+            models.Invoice.billing_month,
+            func.coalesce(func.sum(models.Payment.amount_paid), 0).label("amount"),
+        )
+        .join(models.Payment, models.Payment.invoice_id == models.Invoice.id, isouter=True)
+        .group_by(models.Invoice.billing_month)
+        .order_by(models.Invoice.billing_month)
+        .limit(months)
+    )
+    result = await db.execute(q)
+    rows = result.all()
+    return [schemas.MonthlyCollection(month=row.billing_month, amount=Decimal(str(row.amount))) for row in rows]

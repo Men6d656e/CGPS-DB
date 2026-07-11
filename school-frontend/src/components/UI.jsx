@@ -1,4 +1,4 @@
-import { Loader2, AlertCircle, X, ChevronDown } from 'lucide-react'
+import { Loader2, AlertCircle, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // ─── Loading Spinner ──────────────────────────────────────────────────────────
 export function Spinner({ size = 20, className = '' }) {
@@ -53,6 +53,25 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' })
         <div className="px-6 py-5">{children}</div>
       </div>
     </div>
+  )
+}
+
+// ─── Confirm Modal ─────────────────────────────────────────────────────────────
+export function ConfirmModal({ open, onClose, onConfirm, title, message, confirmText = "Confirm", isDestructive = false }) {
+  if (!open) return null
+  return (
+    <Modal open={open} onClose={onClose} title={title} maxWidth="max-w-sm">
+      <p className="text-slate-400 text-sm mb-6">{message}</p>
+      <div className="flex justify-end gap-3">
+        <button onClick={onClose} className="btn-secondary">Cancel</button>
+        <button 
+          onClick={() => { onConfirm(); onClose(); }} 
+          className={isDestructive ? "btn-danger" : "btn-primary"}
+        >
+          {confirmText}
+        </button>
+      </div>
+    </Modal>
   )
 }
 
@@ -157,6 +176,38 @@ export function Table({ headers, children, empty }) {
           <tbody>{children}</tbody>
         </table>
         {empty}
+      </div>
+    </div>
+  )
+}
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+export function Pagination({ skip, limit, totalItemsInCurrentPage, onNext, onPrev }) {
+  const hasNext = totalItemsInCurrentPage === limit
+  const hasPrev = skip > 0
+  
+  if (!hasNext && !hasPrev) return null
+
+  return (
+    <div className="flex items-center justify-between border-t border-slate-800/60 bg-slate-900/40 px-6 py-3">
+      <div className="text-xs text-slate-500">
+        Showing <span className="font-medium text-slate-300">{skip + 1}</span> to <span className="font-medium text-slate-300">{skip + totalItemsInCurrentPage}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <button 
+          onClick={onPrev} 
+          disabled={!hasPrev}
+          className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-50 flex items-center gap-1"
+        >
+          <ChevronLeft size={14} /> Prev
+        </button>
+        <button 
+          onClick={onNext} 
+          disabled={!hasNext}
+          className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-50 flex items-center gap-1"
+        >
+          Next <ChevronRight size={14} />
+        </button>
       </div>
     </div>
   )

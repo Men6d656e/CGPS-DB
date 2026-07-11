@@ -35,7 +35,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     role: Mapped[UserRole] = mapped_column(
-        String(10), default=UserRole.STAFF, nullable=False
+        SAEnum(UserRole), default=UserRole.STAFF, nullable=False
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     is_superuser: Mapped[bool] = mapped_column(default=False, nullable=False)

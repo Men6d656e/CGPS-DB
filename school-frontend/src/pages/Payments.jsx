@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Plus, CreditCard, Search } from 'lucide-react'
+import { Plus, CreditCard, Search, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { paymentsApi, invoicesApi } from '../api'
-import { SectionHeader, Table, Modal, Field, Select, PageLoader, EmptyState, Spinner } from '../components/UI'
+import { useAuth } from '../contexts/AuthContext'
+import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, PageLoader, EmptyState, Spinner } from '../components/UI'
 
 export default function Payments() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
@@ -16,17 +19,24 @@ export default function Payments() {
     payment_date: new Date().toISOString().split('T')[0],
     notes: ''
   })
+  const [search, setSearch] = useState('')
+  const [dateFilter, setDateFilter] = useState('')
+  const [skip, setSkip] = useState(0)
+  const limit = 50
+  const [confirmVoidOpen, setConfirmVoidOpen] = useState(false)
+  const [paymentToVoid, setPaymentToVoid] = useState(null)
 
   const load = async () => {
     setLoading(true)
     try {
-      const res = await paymentsApi.list({ limit: 200 })
+      const res = await paymentsApi.list({ skip, limit })
       setPayments(res.data)
     } catch { toast.error('Failed to load payments') }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { setSkip(0) }, [search, dateFilter])
+  useEffect(() => { load() }, [skip])
 
   const openCreate = async () => {
     try {
@@ -57,7 +67,28 @@ export default function Payments() {
     } finally { setSaving(false) }
   }
 
-  const totalCollected = payments.reduce((a, p) => a + Number(p.amount_paid), 0)
+  const handleVoidClick = (payment) => {
+    setPaymentToVoid(payment)
+    setConfirmVoidOpen(true)
+  }
+
+  const handleConfirmVoid = async () => {
+    if (!paymentToVoid) return
+    try {
+      await paymentsApi.delete(paymentToVoid.id)
+      toast.success('Payment voided and invoice balance updated')
+      load()
+    } catch { toast.error('Failed to void payment') }
+  }
+
+  const filtered = payments.filter(p => {
+    const matchesSearch = `INV-${String(p.invoice_id).padStart(4, '0')} ${p.notes || ''}`
+      .toLowerCase().includes(search.toLowerCase())
+    const matchesDate = dateFilter ? p.payment_date === dateFilter : true
+    return matchesSearch && matchesDate
+  })
+
+  const totalCollected = filtered.reduce((a, p) => a + Number(p.amount_paid), 0)
 
   return (
     <div className="animate-fade-in">
@@ -65,34 +96,58 @@ export default function Payments() {
         title="Payments"
         description="Record fee payments against invoices"
         action={
-          <button onClick={openCreate} className="btn-primary">
-            <Plus size={16} /> Record Payment
-          </button>
+          isAdmin && (
+            <button onClick={openCreate} className="btn-primary">
+              <Plus size={16} /> Record Payment
+            </button>
+          )
         }
       />
 
       {/* Total collected card */}
-      {payments.length > 0 && (
+      {filtered.length > 0 && (
         <div className="card border-emerald-500/20 bg-emerald-500/5 px-5 py-4 flex items-center gap-4 mb-5">
           <CreditCard size={20} className="text-emerald-400" />
           <div>
             <p className="text-sm font-medium text-emerald-300">Total Collected</p>
-            <p className="text-xs text-slate-400">PKR {totalCollected.toLocaleString()} across {payments.length} transactions</p>
+            <p className="text-xs text-slate-400">PKR {totalCollected.toLocaleString()} across {filtered.length} transactions</p>
           </div>
         </div>
       )}
 
+      <div className="flex gap-4 mb-5">
+        <div className="relative flex-1 max-w-sm">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            className="input pl-9"
+            placeholder="Search by invoice # or notes..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <input
+          type="date"
+          className="input w-40"
+          value={dateFilter}
+          onChange={e => setDateFilter(e.target.value)}
+          title="Filter by payment date"
+        />
+        {(search || dateFilter) && (
+          <button onClick={() => { setSearch(''); setDateFilter('') }} className="btn-secondary">
+            Clear
+          </button>
+        )}
+      </div>
+
       {loading ? <PageLoader /> : (
         <Table
-          headers={['Payment #', 'Invoice #', 'Amount Paid', 'Payment Date', 'Notes', 'Recorded At']}
-          empty={payments.length === 0 && (
+          headers={['Payment #', 'Invoice #', 'Amount Paid', 'Payment Date', 'Notes', 'Recorded At', 'Actions']}
+          empty={filtered.length === 0 && (
             <EmptyState icon={CreditCard} title="No payments recorded"
-              description="Record a payment against an invoice"
-              action={<button onClick={openCreate} className="btn-primary"><Plus size={15} />Record Payment</button>}
-            />
-          )}
+              description="Record a payment against an invoice"            action={isAdmin && <button onClick={openCreate} className="btn-primary"><Plus size={15} />Record Payment</button>}
+          />)}
         >
-          {payments.map(p => (
+          {filtered.map(p => (
             <tr key={p.id} className="table-row">
               <td className="td font-mono text-xs text-slate-400">#{String(p.id).padStart(4, '0')}</td>
               <td className="td font-mono text-xs">
@@ -106,9 +161,30 @@ export default function Payments() {
               <td className="td text-xs text-slate-500">
                 {new Date(p.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
               </td>
+              <td className="td">
+                {isAdmin && (
+                  <button 
+                    onClick={() => handleVoidClick(p)} 
+                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" 
+                    title="Void Payment"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </td>
             </tr>
           ))}
         </Table>
+      )}
+
+      {!loading && (
+        <Pagination 
+          skip={skip} 
+          limit={limit} 
+          totalItemsInCurrentPage={payments.length} 
+          onNext={() => setSkip(skip + limit)} 
+          onPrev={() => setSkip(Math.max(0, skip - limit))} 
+        />
       )}
 
       {/* Record Payment Modal */}
@@ -169,6 +245,17 @@ export default function Payments() {
           </button>
         </div>
       </Modal>
+
+      {/* Void Confirmation Modal */}
+      <ConfirmModal
+        open={confirmVoidOpen}
+        onClose={() => setConfirmVoidOpen(false)}
+        onConfirm={handleConfirmVoid}
+        title="Void Payment"
+        message={paymentToVoid ? `Are you sure you want to void this payment of PKR ${Number(paymentToVoid.amount_paid).toLocaleString()}? This will update the invoice balance.` : ''}
+        confirmText="Void Payment"
+        isDestructive={true}
+      />
     </div>
   )
 }

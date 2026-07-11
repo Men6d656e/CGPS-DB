@@ -2,11 +2,32 @@
 Pydantic Schemas — Request & Response validation
 """
 
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from app.models import StudentStatus, InvoiceStatus, Relationship, UserRole
+
+# ─── CNIC / B-Form patterns ───────────────────────────────────────────────────
+# Pakistan CNIC:  XXXXX-XXXXXXX-X  (13 digits + 2 dashes)
+# B-Form:        XXXXX-XXXXXXXX-X  (14 digits + 2 dashes)
+_CNIC_RE = re.compile(r"^\d{5}-\d{7}-\d$")
+_BFORM_RE = re.compile(r"^\d{5}-\d{8}-\d$")
+
+
+def _validate_cnic_or_bform(value: str) -> str:
+    """Accept both CNIC (13 digits) and B-Form (14 digits) formats."""
+    # Strip dashes to count digits
+    digits = value.replace("-", "")
+    if len(digits) == 13 and _CNIC_RE.match(value):
+        return value
+    if len(digits) == 14 and _BFORM_RE.match(value):
+        return value
+    raise ValueError(
+        "Must be a valid Pakistani CNIC (XXXXX-XXXXXXX-X) "
+        "or B-Form (XXXXX-XXXXXXXX-X)"
+    )
 
 
 # ─── Shared Config ────────────────────────────────────────────────────────────
@@ -19,10 +40,15 @@ class OrmBase(BaseModel):
 
 class ParentCreate(BaseModel):
     guardian_name: str = Field(..., min_length=2, max_length=150)
-    cnic: str = Field(..., min_length=13, max_length=20)
+    cnic: str = Field(..., description="Pakistani CNIC: XXXXX-XXXXXXX-X")
     contact_no: str = Field(..., min_length=10, max_length=20)
     whatsapp_no: Optional[str] = None
     address: Optional[str] = None
+
+    @field_validator("cnic")
+    @classmethod
+    def validate_cnic(cls, v: str) -> str:
+        return _validate_cnic_or_bform(v)
 
 
 class ParentUpdate(BaseModel):
@@ -55,11 +81,16 @@ class ParentBrief(OrmBase):
 class StudentCreate(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
-    cnic_bform: str = Field(..., min_length=13, max_length=20)
+    cnic_bform: str = Field(..., description="Pakistani B-Form: XXXXX-XXXXXXXX-X")
     dob: date
     admission_date: date
     current_class: str = Field(..., min_length=1, max_length=50)
     status: StudentStatus = StudentStatus.ACTIVE
+
+    @field_validator("cnic_bform")
+    @classmethod
+    def validate_cnic_bform(cls, v: str) -> str:
+        return _validate_cnic_or_bform(v)
 
 
 class StudentUpdate(BaseModel):
@@ -67,6 +98,7 @@ class StudentUpdate(BaseModel):
     last_name: Optional[str] = None
     current_class: Optional[str] = None
     status: Optional[StudentStatus] = None
+    # NOTE: cnic_bform intentionally excluded from updates
 
 
 class StudentOut(OrmBase):
@@ -213,12 +245,17 @@ class DashboardStats(BaseModel):
     total_pending_amount: Decimal
 
 
+class MonthlyCollection(BaseModel):
+    month: str          # "2026-04"
+    amount: Decimal
+
+
 # ─── Authentication ────────────────────────────────────────────────────────────
 
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: str = Field(..., max_length=120)
-    password: str = Field(..., min_length=6, max_length=128)
+    password: str = Field(..., min_length=8, max_length=128)   # raised minimum to 8
     full_name: Optional[str] = None
     role: UserRole = UserRole.STAFF
 
@@ -238,9 +275,25 @@ class UserRoleUpdate(BaseModel):
     role: UserRole
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class TokenPair(BaseModel):
+    """Access token + refresh token returned on login."""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 class LoginRequest(BaseModel):

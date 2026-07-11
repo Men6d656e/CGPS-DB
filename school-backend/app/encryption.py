@@ -5,6 +5,7 @@ Uses RSA-OAEP with SHA-256 for secure asymmetric encryption.
 
 import base64
 import hashlib
+import binascii
 from typing import Optional
 
 from cryptography.hazmat.primitives import hashes
@@ -90,12 +91,36 @@ def encrypt_field(plain_text: str) -> str:
     return base64.b64encode(ciphertext).decode("utf-8")
 
 
+def is_encrypted(value: str) -> bool:
+    """
+    Check whether a value is RSA-encrypted (base64-encoded ciphertext)
+    or plaintext.  Returns True if it looks like valid RSA ciphertext.
+    Handles the case where existing data was never encrypted after the
+    schema migration.
+    """
+    if not value:
+        return False
+    # RSA-encrypted values are always valid base64
+    try:
+        raw = base64.b64decode(value.encode("utf-8"), validate=True)
+    except (binascii.Error, ValueError):
+        return False
+    # RSA-2048 ciphertext is exactly 256 bytes; RSA-4096 would be 512.
+    # Accept either to stay flexible if key size changes in the future.
+    return len(raw) in (256, 512)
+
+
 def decrypt_field(cipher_text: str) -> str:
     """
     Decrypt a base64-encoded ciphertext back to the original plaintext.
+    If the value is already plaintext (e.g. legacy data that was never
+    encrypted), it is returned as-is.
     Returns the original plaintext string.
     """
     if not cipher_text:
+        return cipher_text
+    if not is_encrypted(cipher_text):
+        # Value is already plaintext — legacy data or already decrypted
         return cipher_text
     private_key = _load_private_key()
     cipher_bytes = base64.b64decode(cipher_text.encode("utf-8"))
@@ -119,3 +144,23 @@ def hash_for_dedup(value: str) -> str:
     OAEP random padding), we store a hash separately for uniqueness checks.
     """
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+# ─── Bulk Re-encryption Helpers ───────────────────────────────────────────────
+
+def ensure_encrypted(value: str) -> tuple[str, str]:
+    """
+    Given a value that may be plaintext OR already RSA-encrypted, return a
+    tuple of (encrypted_value, hash_for_dedup_of_plaintext).
+
+    - If *value* is already encrypted → returns (value, hash).
+    - If *value* is plaintext → encrypts it and returns (ciphertext, hash).
+
+    This is idempotent — safe to call on any CNIC/B-Form field.
+    """
+    if is_encrypted(value):
+        # Already encrypted — decrypt first so we can compute the hash
+        plain = decrypt_field(value)
+        return value, hash_for_dedup(plain)
+    # Plaintext — encrypt and hash
+    return encrypt_field(value), hash_for_dedup(value)
