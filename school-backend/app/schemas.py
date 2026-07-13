@@ -2,31 +2,29 @@
 Pydantic Schemas — Request & Response validation
 """
 
+from __future__ import annotations
+
 import re
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict, field_validator
-from app.models import StudentStatus, InvoiceStatus, Relationship, UserRole
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
+from app.models import StudentStatus, InvoiceStatus, Relationship, UserRole, TeacherStatus
+from app import models
+from app.encryption import decrypt_field
 
-# ─── CNIC / B-Form patterns ───────────────────────────────────────────────────
-# Pakistan CNIC:  XXXXX-XXXXXXX-X  (13 digits + 2 dashes)
-# B-Form:        XXXXX-XXXXXXXX-X  (14 digits + 2 dashes)
+# ─── CNIC / B-Form pattern ────────────────────────────────────────────────────
+# Format: XXXXX-XXXXXXX-X  (13 digits + 2 dashes)
 _CNIC_RE = re.compile(r"^\d{5}-\d{7}-\d$")
-_BFORM_RE = re.compile(r"^\d{5}-\d{8}-\d$")
 
 
 def _validate_cnic_or_bform(value: str) -> str:
-    """Accept both CNIC (13 digits) and B-Form (14 digits) formats."""
-    # Strip dashes to count digits
-    digits = value.replace("-", "")
-    if len(digits) == 13 and _CNIC_RE.match(value):
-        return value
-    if len(digits) == 14 and _BFORM_RE.match(value):
+    """Accept CNIC / B-Form in 13-digit format (XXXXX-XXXXXXX-X)."""
+    if _CNIC_RE.match(value):
         return value
     raise ValueError(
-        "Must be a valid Pakistani CNIC (XXXXX-XXXXXXX-X) "
-        "or B-Form (XXXXX-XXXXXXXX-X)"
+        "Must be a valid CNIC / B-Form number "
+        "(XXXXX-XXXXXXX-X — 13 digits)"
     )
 
 
@@ -76,6 +74,26 @@ class ParentBrief(OrmBase):
     relationship: Optional[str] = None
 
 
+class ParentWithStudents(ParentOut):
+    students: list[StudentBrief] = []
+
+    @model_validator(mode='before')
+    @classmethod
+    def extract_students(cls, data):
+        if isinstance(data, models.Parent):
+            data.students = [
+                StudentBrief(
+                    id=rel.student.id,
+                    first_name=rel.student.first_name,
+                    last_name=rel.student.last_name,
+                    current_class=rel.student.current_class,
+                    status=rel.student.status,
+                )
+                for rel in (data.student_links or []) if rel.student
+            ]
+        return data
+
+
 # ─── Students ─────────────────────────────────────────────────────────────────
 
 class StudentCreate(BaseModel):
@@ -116,6 +134,22 @@ class StudentOut(OrmBase):
 class StudentWithParents(StudentOut):
     parents: list[ParentBrief] = []
 
+    @model_validator(mode='before')
+    @classmethod
+    def extract_parents(cls, data):
+        if isinstance(data, models.Student):
+            data.parents = [
+                ParentBrief(
+                    id=rel.parent.id,
+                    guardian_name=rel.parent.guardian_name,
+                    cnic=decrypt_field(rel.parent.cnic) if rel.parent and rel.parent.cnic else None,
+                    contact_no=rel.parent.contact_no,
+                    relationship=rel.relationship.value if rel.relationship else None,
+                )
+                for rel in (data.parent_links or []) if rel.parent
+            ]
+        return data
+
 
 class StudentBrief(OrmBase):
     id: int
@@ -137,6 +171,56 @@ class StudentParentRelOut(OrmBase):
     student_id: int
     parent_id: int
     relationship: Relationship
+
+
+# ─── Teachers ────────────────────────────────────────────────────────────────
+
+class TeacherCreate(BaseModel):
+    first_name: str = Field(..., min_length=1, max_length=100)
+    last_name: str = Field(..., min_length=1, max_length=100)
+    email: Optional[str] = None
+    phone: str = Field(..., min_length=10, max_length=20)
+    subject: Optional[str] = None
+    qualification: Optional[str] = None
+    hire_date: date
+    salary: Optional[Decimal] = None
+    address: Optional[str] = None
+    status: TeacherStatus = TeacherStatus.ACTIVE
+
+
+class TeacherUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    subject: Optional[str] = None
+    qualification: Optional[str] = None
+    salary: Optional[Decimal] = None
+    address: Optional[str] = None
+    status: Optional[TeacherStatus] = None
+
+
+class TeacherOut(OrmBase):
+    id: int
+    first_name: str
+    last_name: str
+    email: Optional[str]
+    phone: str
+    subject: Optional[str]
+    qualification: Optional[str]
+    hire_date: date
+    salary: Optional[Decimal]
+    address: Optional[str]
+    status: TeacherStatus
+    created_at: datetime
+
+
+class TeacherBrief(OrmBase):
+    id: int
+    first_name: str
+    last_name: str
+    subject: Optional[str]
+    status: TeacherStatus
 
 
 # ─── Fee Types ────────────────────────────────────────────────────────────────

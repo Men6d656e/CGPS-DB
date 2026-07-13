@@ -28,10 +28,16 @@ def upgrade() -> None:
         existing_type=sa.String(20),
         nullable=False,
     )
-    # Add cnic_bform_hash column for uniqueness checking
+    # Add cnic_bform_hash column (nullable initially to handle existing rows)
     op.add_column('students',
-        sa.Column('cnic_bform_hash', sa.String(64), nullable=False, server_default='')
+        sa.Column('cnic_bform_hash', sa.String(64), nullable=True)
     )
+    # Set a unique hash for existing rows based on their id
+    op.execute(
+        "UPDATE students SET cnic_bform_hash = 'legacy_' || id WHERE cnic_bform_hash IS NULL"
+    )
+    # Now make it non-nullable and add unique constraint
+    op.alter_column('students', 'cnic_bform_hash', nullable=False)
     op.create_unique_constraint('uq_students_cnic_bform_hash', 'students', ['cnic_bform_hash'])
     op.create_index('ix_students_cnic_bform_hash', 'students', ['cnic_bform_hash'])
 
@@ -44,16 +50,18 @@ def upgrade() -> None:
         existing_type=sa.String(20),
         nullable=False,
     )
-    # Add cnic_hash column for uniqueness checking
+    # Add cnic_hash column (nullable initially to handle existing rows)
     op.add_column('parents',
-        sa.Column('cnic_hash', sa.String(64), nullable=False, server_default='')
+        sa.Column('cnic_hash', sa.String(64), nullable=True)
     )
+    # Set a unique hash for existing rows based on their id
+    op.execute(
+        "UPDATE parents SET cnic_hash = 'legacy_' || id WHERE cnic_hash IS NULL"
+    )
+    # Now make it non-nullable and add unique constraint
+    op.alter_column('parents', 'cnic_hash', nullable=False)
     op.create_unique_constraint('uq_parents_cnic_hash', 'parents', ['cnic_hash'])
     op.create_index('ix_parents_cnic_hash', 'parents', ['cnic_hash'])
-
-    # Remove server_default after migration completes (we don't want default on new rows)
-    op.alter_column('students', 'cnic_bform_hash', server_default=None)
-    op.alter_column('parents', 'cnic_hash', server_default=None)
 
 
 def downgrade() -> None:

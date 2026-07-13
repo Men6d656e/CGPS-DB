@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search, Users, Edit2, Trash2, Link, Eye } from 'lucide-react'
+import { Plus, Search, Users, Edit2, Trash2, Link, Eye, UserCheck, Phone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { studentsApi, parentsApi } from '../api'
@@ -9,6 +9,13 @@ import {
 } from '../components/UI'
 
 const CLASSES = ['Nursery','KG','1','2','3','4','5','6','7','8','9','10']
+
+const formatCNIC = (value) => {
+  const digits = value.replace(/\D/g, '').slice(0, 13)
+  if (digits.length > 12) return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12)}`
+  if (digits.length > 5) return `${digits.slice(0, 5)}-${digits.slice(5)}`
+  return digits
+}
 
 const emptyForm = {
   first_name: '', last_name: '', cnic_bform: '',
@@ -21,6 +28,7 @@ export default function Students() {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [skip, setSkip] = useState(0)
   const limit = 50
@@ -38,12 +46,13 @@ export default function Students() {
   const [siblings, setSiblings] = useState([])
   const [parents, setParents] = useState([])
   const [linkData, setLinkData] = useState({ parent_id: '', relationship: 'Father' })
+  const [detailParents, setDetailParents] = useState([])
   const [saving, setSaving] = useState(false)
 
   const load = async () => {
     setLoading(true)
     try {
-      const res = await studentsApi.list({ status: statusFilter || undefined, skip, limit })
+      const res = await studentsApi.list({ status: statusFilter || undefined, search: search || undefined, skip, limit })
       setStudents(res.data)
     } catch { toast.error('Failed to load students') }
     finally { setLoading(false) }
@@ -51,21 +60,18 @@ export default function Students() {
 
   useEffect(() => { 
     setSkip(0)
-  }, [statusFilter])
+  }, [statusFilter, search])
 
-  useEffect(() => { load() }, [statusFilter, skip])
+  useEffect(() => { load() }, [statusFilter, search, skip])
 
-  const filtered = students.filter(s =>
-    `${s.first_name} ${s.last_name} ${s.cnic_bform} ${s.current_class}`
-      .toLowerCase().includes(search.toLowerCase())
-  )
+  const validateCnicBform = (val) => /^\d{5}-\d{7}-\d$/.test(val)
 
   const handleCreate = async () => {
     if (!form.first_name || !form.last_name || !form.cnic_bform || !form.dob || !form.admission_date) {
       return toast.error('Please fill all required fields')
     }
-    if (!/^\d{5}-\d{7}-\d$/.test(form.cnic_bform)) {
-      return toast.error('B-Form / CNIC must follow 00000-0000000-0 format')
+    if (!validateCnicBform(form.cnic_bform)) {
+      return toast.error('CNIC/B-Form must follow 00000-0000000-0 format (13 digits)')
     }
     setSaving(true)
     try {
@@ -80,15 +86,18 @@ export default function Students() {
   }
 
   const handleEdit = async () => {
-    if (!editForm.first_name || !editForm.last_name || !editForm.cnic_bform || !editForm.dob || !editForm.admission_date) {
-      return toast.error('Please fill all required fields')
-    }
-    if (!/^\d{5}-\d{7}-\d$/.test(editForm.cnic_bform)) {
-      return toast.error('B-Form / CNIC must follow 00000-0000000-0 format')
+    if (!editForm.first_name || !editForm.last_name) {
+      return toast.error('First name and last name are required')
     }
     setSaving(true)
     try {
-      await studentsApi.update(selected.id, editForm)
+      // Only send editable fields — CNIC is immutable after creation
+      await studentsApi.update(selected.id, {
+        first_name: editForm.first_name,
+        last_name: editForm.last_name,
+        current_class: editForm.current_class,
+        status: editForm.status,
+      })
       toast.success('Student updated!')
       setEditOpen(false)
       load()
@@ -113,8 +122,12 @@ export default function Students() {
   const openDetail = async (student) => {
     setSelected(student)
     setDetailOpen(true)
-    const [sibRes] = await Promise.all([studentsApi.getSiblings(student.id)])
+    const [sibRes, stuRes] = await Promise.all([
+      studentsApi.getSiblings(student.id),
+      studentsApi.get(student.id),
+    ])
     setSiblings(sibRes.data)
+    setDetailParents(stuRes.data.parents || [])
   }
 
   const openLink = async (student) => {
@@ -159,10 +172,18 @@ export default function Students() {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             className="input pl-9"
-            placeholder="Search by name, CNIC, class..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name or class..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') setSearch(searchInput) }}
           />
+          <button
+            onClick={() => setSearch(searchInput)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors"
+            title="Search"
+          >
+            <Search size={14} />
+          </button>
         </div>
         <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-40">
           <option value="">All Status</option>
@@ -175,7 +196,7 @@ export default function Students() {
       {loading ? <PageLoader /> : (
         <Table
           headers={['Name', 'Class', 'CNIC/B-Form', 'Admission', 'Status', 'Actions']}
-          empty={filtered.length === 0 && (
+          empty={students.length === 0 && (
             <EmptyState icon={Users} title="No students found"
               description="Start by adding your first student to the system"
               action={
@@ -188,7 +209,7 @@ export default function Students() {
             />
           )}
         >
-          {filtered.map(s => (
+          {students.map(s => (
             <tr key={s.id} className="table-row">
               <td className="td font-medium text-slate-200">{s.first_name} {s.last_name}</td>
               <td className="td">
@@ -230,7 +251,7 @@ export default function Students() {
                       <button onClick={() => openLink(s)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Link parent">
                         <Link size={14} />
                       </button>
-                      <button onClick={() => { setSelected(s); setEditForm({ ...s }); setEditOpen(true) }}
+                      <button onClick={() => { setSelected(s); setEditForm({ first_name: s.first_name, last_name: s.last_name, current_class: s.current_class, status: s.status }); setEditOpen(true) }}
                         className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Edit">
                         <Edit2 size={14} />
                       </button>
@@ -266,7 +287,7 @@ export default function Students() {
             <input className="input" value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="Khan" />
           </Field>
           <Field label="CNIC / B-Form" >
-            <input className="input" value={form.cnic_bform} onChange={e => setForm({ ...form, cnic_bform: e.target.value })} placeholder="3420112345671" />
+            <input className="input" value={form.cnic_bform} onChange={e => setForm({ ...form, cnic_bform: formatCNIC(e.target.value) })} maxLength={15} placeholder="34201-1234567-1" />
           </Field>
           <Field label="Date of Birth">
             <input type="date" className="input" value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })} />
@@ -337,6 +358,46 @@ export default function Students() {
                 </div>
               ))}
             </div>
+            {/* Linked Parents */}
+            {detailParents.length > 0 ? (
+              <div>
+                <p className="label mb-2">Parents / Guardians ({detailParents.length})</p>
+                <div className="space-y-1.5">
+                  {detailParents.map(p => (
+                    <div key={p.id} className="flex items-center gap-3 bg-slate-800/40 rounded-xl px-4 py-2.5">
+                      <UserCheck size={14} className="text-brand-400" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm text-slate-300 block truncate">{p.guardian_name}</span>
+                        <span className="text-xs text-slate-500">{p.relationship || 'Guardian'} · <Phone size={10} className="inline" /> {p.contact_no}</span>
+                      </div>
+                      {isAdmin && (
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              await studentsApi.unlinkParent(selected.id, p.id)
+                              toast.success('Parent unlinked')
+                              const stuRes = await studentsApi.get(selected.id)
+                              setDetailParents(stuRes.data.parents || [])
+                              load()
+                            } catch { toast.error('Failed to unlink parent') }
+                          }}
+                          className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-slate-500 hover:text-red-400"
+                          title="Unlink parent"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-800/30 rounded-xl px-4 py-3">
+                <p className="text-xs text-slate-500">No parents linked yet</p>
+              </div>
+            )}
+
             {siblings.length > 0 && (
               <div>
                 <p className="label mb-2">Siblings ({siblings.length})</p>

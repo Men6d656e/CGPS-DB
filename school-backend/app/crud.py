@@ -81,12 +81,19 @@ def _decrypt_student_cnic(student: models.Student):
         set_committed_value(student, 'cnic_bform', plain)
 
 
-async def get_students(db: AsyncSession, skip: int = 0, limit: int = 50, status: str = None):
+async def get_students(db: AsyncSession, skip: int = 0, limit: int = 50, status: str = None, search: str = None):
     q = select(models.Student).options(
         selectinload(models.Student.parent_links).selectinload(models.StudentParentRel.parent)
     )
     if status:
         q = q.where(models.Student.status == status)
+    if search:
+        pattern = f"%{search}%"
+        q = q.where(
+            models.Student.first_name.ilike(pattern)
+            | models.Student.last_name.ilike(pattern)
+            | models.Student.current_class.ilike(pattern)
+        )
     q = q.offset(skip).limit(limit).order_by(desc(models.Student.created_at))
     result = await db.execute(q)
     students = result.scalars().all()
@@ -179,8 +186,16 @@ def _decrypt_parent_cnic(parent: models.Parent):
         set_committed_value(parent, 'cnic', plain)
 
 
-async def get_parents(db: AsyncSession, skip: int = 0, limit: int = 50):
-    q = select(models.Parent).offset(skip).limit(limit).order_by(desc(models.Parent.created_at))
+async def get_parents(db: AsyncSession, skip: int = 0, limit: int = 50, search: str = None):
+    q = select(models.Parent)
+    if search:
+        pattern = f"%{search}%"
+        q = q.where(
+            models.Parent.guardian_name.ilike(pattern)
+            | models.Parent.contact_no.ilike(pattern)
+            | models.Parent.whatsapp_no.ilike(pattern)
+        )
+    q = q.offset(skip).limit(limit).order_by(desc(models.Parent.created_at))
     result = await db.execute(q)
     parents = result.scalars().all()
     for p in parents:
@@ -266,6 +281,58 @@ async def unlink_parent_from_student(db: AsyncSession, student_id: int, parent_i
         await db.delete(rel)
         await db.flush()
     return rel
+
+
+# ─── Teachers ────────────────────────────────────────────────────────────────
+
+async def get_teachers(db: AsyncSession, skip: int = 0, limit: int = 50, status: str = None, search: str = None):
+    q = select(models.Teacher)
+    if status:
+        q = q.where(models.Teacher.status == status)
+    if search:
+        pattern = f"%{search}%"
+        q = q.where(
+            models.Teacher.first_name.ilike(pattern)
+            | models.Teacher.last_name.ilike(pattern)
+            | models.Teacher.subject.ilike(pattern)
+            | models.Teacher.phone.ilike(pattern)
+            | models.Teacher.email.ilike(pattern)
+        )
+    q = q.offset(skip).limit(limit).order_by(desc(models.Teacher.created_at))
+    result = await db.execute(q)
+    return result.scalars().all()
+
+
+async def get_teacher(db: AsyncSession, teacher_id: int):
+    q = select(models.Teacher).where(models.Teacher.id == teacher_id)
+    result = await db.execute(q)
+    return result.scalar_one_or_none()
+
+
+async def create_teacher(db: AsyncSession, data: schemas.TeacherCreate):
+    teacher = models.Teacher(**data.model_dump())
+    db.add(teacher)
+    await db.flush()
+    await db.refresh(teacher)
+    return teacher
+
+
+async def update_teacher(db: AsyncSession, teacher_id: int, data: schemas.TeacherUpdate):
+    teacher = await get_teacher(db, teacher_id)
+    if not teacher:
+        return None
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(teacher, field, value)
+    await db.flush()
+    return await get_teacher(db, teacher_id)
+
+
+async def delete_teacher(db: AsyncSession, teacher_id: int):
+    teacher = await get_teacher(db, teacher_id)
+    if teacher:
+        await db.delete(teacher)
+        await db.flush()
+    return teacher
 
 
 # ─── Fee Types ────────────────────────────────────────────────────────────────

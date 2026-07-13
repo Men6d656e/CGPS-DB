@@ -1,9 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search, UserCheck, Edit2, Phone, Trash2 } from 'lucide-react'
+import { Plus, Search, UserCheck, Edit2, Phone, Trash2, Eye, Users, GraduationCap } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { parentsApi } from '../api'
 import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
+
+const formatCNIC = (value) => {
+  const digits = value.replace(/\D/g, '').slice(0, 13)
+  if (digits.length > 12) return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12)}`
+  if (digits.length > 5) return `${digits.slice(0, 5)}-${digits.slice(5)}`
+  return digits
+}
 
 const emptyForm = {
   guardian_name: '', cnic: '', contact_no: '',
@@ -16,11 +23,14 @@ export default function Parents() {
   const [parents, setParents] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [skip, setSkip] = useState(0)
   const limit = 50
   const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
   const [selected, setSelected] = useState(null)
+  const [linkedStudents, setLinkedStudents] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
@@ -30,18 +40,17 @@ export default function Parents() {
   const load = async () => {
     setLoading(true)
     try {
-      const res = await parentsApi.list({ skip, limit })
+      const res = await parentsApi.list({ search: search || undefined, skip, limit })
       setParents(res.data)
     } catch { toast.error('Failed to load parents') }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { load() }, [skip])
+  useEffect(() => { 
+    setSkip(0)
+  }, [search])
 
-  const filtered = parents.filter(p =>
-    `${p.guardian_name} ${p.cnic} ${p.contact_no}`
-      .toLowerCase().includes(search.toLowerCase())
-  )
+  useEffect(() => { load() }, [search, skip])
 
   const handleCreate = async () => {
     if (!form.guardian_name || !form.contact_no) {
@@ -107,17 +116,25 @@ export default function Parents() {
       <div className="relative mb-5">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
         <input
-          className="input pl-9 max-w-sm"
-          placeholder="Search by name, CNIC, phone..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
+          className="input pl-9 pr-10"
+          placeholder="Search by name or phone..."
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') setSearch(searchInput) }}
         />
+        <button
+          onClick={() => setSearch(searchInput)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors"
+          title="Search"
+        >
+          <Search size={14} />
+        </button>
       </div>
 
       {loading ? <PageLoader /> : (
         <Table
           headers={['Guardian Name', 'CNIC', 'Contact', 'WhatsApp', 'Address', 'Actions']}
-          empty={filtered.length === 0 && (
+          empty={parents.length === 0 && (
             <EmptyState icon={UserCheck} title="No parents found"
               description="Add guardians to link them with students"
               action={
@@ -130,7 +147,7 @@ export default function Parents() {
             />
           )}
         >
-          {filtered.map(p => (
+          {parents.map(p => (
             <tr key={p.id} className="table-row">
               <td className="td font-medium text-slate-200">{p.guardian_name}</td>
               <td className="td font-mono text-xs text-slate-400">{p.cnic}</td>
@@ -142,24 +159,40 @@ export default function Parents() {
               <td className="td text-slate-400">{p.whatsapp_no || '—'}</td>
               <td className="td text-slate-400 max-w-xs truncate">{p.address || '—'}</td>
               <td className="td">
-                {isAdmin && (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => { setSelected(p); setEditForm({ guardian_name: p.guardian_name, contact_no: p.contact_no, whatsapp_no: p.whatsapp_no || '', address: p.address || '' }); setEditOpen(true) }}
-                      className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
-                      title="Edit"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteClick(p)} 
-                      className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" 
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={async () => {
+                      setSelected(p)
+                      try {
+                        const res = await parentsApi.get(p.id)
+                        setLinkedStudents(res.data.students || [])
+                      } catch { setLinkedStudents([]) }
+                      setDetailOpen(true)
+                    }}
+                    className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
+                    title="View details"
+                  >
+                    <Eye size={14} />
+                  </button>
+                  {isAdmin && (
+                    <>
+                      <button
+                        onClick={() => { setSelected(p); setEditForm({ guardian_name: p.guardian_name, contact_no: p.contact_no, whatsapp_no: p.whatsapp_no || '', address: p.address || '' }); setEditOpen(true) }}
+                        className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
+                        title="Edit"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteClick(p)} 
+                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" 
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
@@ -183,7 +216,7 @@ export default function Parents() {
             <input className="input" value={form.guardian_name} onChange={e => setForm({ ...form, guardian_name: e.target.value })} placeholder="Muhammad Tariq" />
           </Field>
           <Field label="CNIC">
-            <input className="input" value={form.cnic} onChange={e => setForm({ ...form, cnic: e.target.value })} placeholder="3520112345671" />
+            <input className="input" value={form.cnic} onChange={e => setForm({ ...form, cnic: formatCNIC(e.target.value) })} maxLength={15} placeholder="35201-1234567-1" />
           </Field>
           <Field label="Contact Number">
             <input className="input" value={form.contact_no} onChange={e => setForm({ ...form, contact_no: e.target.value })} placeholder="03001234567" />
@@ -229,6 +262,45 @@ export default function Parents() {
             {saving ? <Spinner size={15} /> : null} Save Changes
           </button>
         </div>
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal open={detailOpen} onClose={() => setDetailOpen(false)} title={selected?.guardian_name || 'Parent Details'} maxWidth="max-w-xl">
+        {selected && (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {[
+                ['Guardian Name', selected.guardian_name],
+                ['CNIC', selected.cnic],
+                ['Contact', selected.contact_no],
+                ['WhatsApp', selected.whatsapp_no || '—'],
+                ['Address', selected.address || '—'],
+              ].map(([k, v]) => (
+                <div key={k} className="bg-slate-800/40 rounded-xl px-4 py-3">
+                  <p className="text-xs text-slate-500 mb-0.5">{k}</p>
+                  <p className="text-slate-200 font-medium capitalize">{v}</p>
+                </div>
+              ))}
+            </div>
+            {/* Linked Students */}
+            <div>
+              <p className="label mb-2">Linked Students {linkedStudents.length > 0 ? `(${linkedStudents.length})` : ''}</p>
+              {linkedStudents.length > 0 ? (
+                <div className="space-y-1.5">
+                  {linkedStudents.map(s => (
+                    <div key={s.id} className="flex items-center gap-3 bg-slate-800/40 rounded-xl px-4 py-2.5">
+                      <GraduationCap size={14} className="text-brand-400" />
+                      <span className="text-sm text-slate-300">{s.first_name} {s.last_name}</span>
+                      <span className="text-xs text-slate-500 ml-auto">Class {s.current_class}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">No students linked to this guardian</p>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Delete Confirmation Modal */}

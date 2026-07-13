@@ -2,23 +2,25 @@ import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, UserCheck, DollarSign,
   FileText, CreditCard, GraduationCap, Menu, X,
-  LogOut, User as UserIcon, Shield
+  LogOut, User as UserIcon, Shield, School
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import Dashboard from './pages/Dashboard'
 import Students from './pages/Students'
+import Teachers from './pages/Teachers'
 import Parents from './pages/Parents'
 import Fees from './pages/Fees'
 import Invoices from './pages/Invoices'
 import Payments from './pages/Payments'
-import Users from './pages/Users'
+import UsersPage from './pages/Users'
 import Login from './pages/Login'
 import { PageLoader } from './components/UI'
 
 const navItems = [
   { to: '/',          icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/students',  icon: Users,           label: 'Students' },
+  { to: '/teachers',  icon: School, label: 'Teachers' },
   { to: '/parents',   icon: UserCheck,       label: 'Parents' },
   { to: '/fees',      icon: DollarSign,      label: 'Fee Types' },
   { to: '/invoices',  icon: FileText,        label: 'Invoices' },
@@ -175,11 +177,12 @@ export default function App() {
             <Routes>
               <Route path="/"          element={<Dashboard />} />
               <Route path="/students"  element={<Students />} />
+              <Route path="/teachers"  element={<Teachers />} />
               <Route path="/parents"   element={<Parents />} />
               <Route path="/fees"      element={<Fees />} />
               <Route path="/invoices"  element={<Invoices />} />
               <Route path="/payments"  element={<Payments />} />
-              <Route path="/users"     element={<Users />} />
+              <Route path="/users"     element={<UsersPage />} />
             </Routes>
           </div>
         </main>

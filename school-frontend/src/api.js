@@ -85,6 +85,15 @@ export const parentsApi = {
   delete: (id) => api.delete(`/parents/${id}`),
 }
 
+// ─── Teachers ────────────────────────────────────────────────────────────────
+export const teachersApi = {
+  list: (params) => api.get('/teachers', { params }),
+  get: (id) => api.get(`/teachers/${id}`),
+  create: (data) => api.post('/teachers', data),
+  update: (id, data) => api.patch(`/teachers/${id}`, data),
+  delete: (id) => api.delete(`/teachers/${id}`),
+}
+
 // ─── Fee Types ────────────────────────────────────────────────────────────────
 export const feesApi = {
   list: () => api.get('/fees'),

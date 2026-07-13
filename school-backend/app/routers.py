@@ -169,10 +169,11 @@ async def list_students(
     skip: int = 0,
     limit: int = Query(50, le=200),
     status: str = Query(None, description="Filter by status: active, withdrawn, graduated"),
+    search: str = Query(None, description="Search by name or class"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),   # ← now requires auth
+    current_user: User = Depends(require_staff_or_admin),
 ):
-    return await crud.get_students(db, skip=skip, limit=limit, status=status)
+    return await crud.get_students(db, skip=skip, limit=limit, status=status, search=search)
 
 
 @students_router.post("/", response_model=schemas.StudentOut, status_code=201)
@@ -187,7 +188,7 @@ async def create_student(
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@students_router.get("/{student_id}", response_model=schemas.StudentOut)
+@students_router.get("/{student_id}", response_model=schemas.StudentWithParents)
 async def get_student(
     student_id: int,
     db: AsyncSession = Depends(get_db),
@@ -275,10 +276,11 @@ parents_router = APIRouter(prefix="/parents", tags=["Parents"])
 async def list_parents(
     skip: int = 0,
     limit: int = Query(50, le=200),
+    search: str = Query(None, description="Search by guardian name, CNIC, or phone number"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),   # ← now requires auth
+    current_user: User = Depends(require_staff_or_admin),
 ):
-    return await crud.get_parents(db, skip=skip, limit=limit)
+    return await crud.get_parents(db, skip=skip, limit=limit, search=search)
 
 
 @parents_router.post("/", response_model=schemas.ParentOut, status_code=201)
@@ -293,7 +295,7 @@ async def create_parent(
         raise HTTPException(status_code=409, detail=str(e))
 
 
-@parents_router.get("/{parent_id}", response_model=schemas.ParentOut)
+@parents_router.get("/{parent_id}", response_model=schemas.ParentWithStudents)
 async def get_parent(
     parent_id: int,
     db: AsyncSession = Depends(get_db),
@@ -331,6 +333,68 @@ async def delete_parent(
     parent = await crud.delete_parent(db, parent_id)
     if not parent:
         raise HTTPException(status_code=404, detail="Parent not found")
+
+
+# ─── Teachers Router ──────────────────────────────────────────────────────────
+
+teachers_router = APIRouter(prefix="/teachers", tags=["Teachers"])
+
+
+@teachers_router.get("/", response_model=list[schemas.TeacherOut])
+async def list_teachers(
+    skip: int = 0,
+    limit: int = Query(50, le=200),
+    status: str = Query(None, description="Filter by status: active, inactive, resigned"),
+    search: str = Query(None, description="Search by name, subject, phone, or email"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_staff_or_admin),
+):
+    return await crud.get_teachers(db, skip=skip, limit=limit, status=status, search=search)
+
+
+@teachers_router.post("/", response_model=schemas.TeacherOut, status_code=201)
+async def create_teacher(
+    data: schemas.TeacherCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    return await crud.create_teacher(db, data)
+
+
+@teachers_router.get("/{teacher_id}", response_model=schemas.TeacherOut)
+async def get_teacher(
+    teacher_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_staff_or_admin),
+):
+    teacher = await crud.get_teacher(db, teacher_id)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    return teacher
+
+
+@teachers_router.patch("/{teacher_id}", response_model=schemas.TeacherOut)
+async def update_teacher(
+    teacher_id: int,
+    data: schemas.TeacherUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    teacher = await crud.update_teacher(db, teacher_id, data)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+    return teacher
+
+
+@teachers_router.delete("/{teacher_id}", status_code=204)
+async def delete_teacher(
+    teacher_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    teacher = await crud.delete_teacher(db, teacher_id)
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
 
 
 # ─── Fees Router ──────────────────────────────────────────────────────────────

@@ -34,8 +34,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
-    role: Mapped[UserRole] = mapped_column(
-        SAEnum(UserRole), default=UserRole.STAFF, nullable=False
+    role: Mapped[str] = mapped_column(
+        String(10), default=UserRole.STAFF.value, nullable=False
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     is_superuser: Mapped[bool] = mapped_column(default=False, nullable=False)
@@ -43,6 +43,12 @@ class User(Base):
 
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
+
+class TeacherStatus(str, enum.Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    RESIGNED = "resigned"
+
 
 class StudentStatus(str, enum.Enum):
     ACTIVE = "active"
@@ -134,6 +140,31 @@ class StudentParentRel(Base):
 
     student: Mapped["Student"] = orm_relationship(back_populates="parent_links")
     parent: Mapped["Parent"] = orm_relationship(back_populates="student_links")
+
+
+# ─── Teachers / Staff ────────────────────────────────────────────────────────
+
+class Teacher(Base):
+    __tablename__ = "teachers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    first_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    phone: Mapped[str] = mapped_column(String(20), nullable=False)
+    subject: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    qualification: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    hire_date: Mapped[date] = mapped_column(Date, nullable=False)
+    salary: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[TeacherStatus] = mapped_column(
+        SAEnum(TeacherStatus), default=TeacherStatus.ACTIVE, nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}"
 
 
 # ─── Fee Types (Price List) ───────────────────────────────────────────────────

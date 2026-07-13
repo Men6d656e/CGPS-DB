@@ -12,6 +12,7 @@ from app.config import settings
 from app.routers import (
     auth_router,
     users_router,
+    teachers_router,
     students_router,
     parents_router,
     fees_router,
@@ -47,6 +48,7 @@ app.add_middleware(
 # ─── Routers ──────────────────────────────────────────────────────────────────
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
+app.include_router(teachers_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(students_router, prefix="/api/v1")
 app.include_router(parents_router, prefix="/api/v1")
