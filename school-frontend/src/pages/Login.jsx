@@ -5,8 +5,8 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Login() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [username, setUsername] = useState('muhammadnawaz')
+  const [password, setPassword] = useState('12345')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -34,29 +34,33 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative background gradients */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gold-400/5 rounded-full blur-3xl" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+         style={{ background: '#e8ecf1' }}>
+      {/* Decorative background */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full blur-3xl"
+             style={{ background: 'rgba(20, 184, 166, 0.08)' }} />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full blur-3xl"
+             style={{ background: 'rgba(13, 148, 136, 0.06)' }} />
       </div>
 
       {/* Login card */}
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-xl shadow-brand-500/30 mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl shadow-lg mb-4"
+               style={{ background: 'linear-gradient(135deg, #0d9488, #14b8a6)' }}>
             <GraduationCap size={32} className="text-white" />
           </div>
-          <h1 className="font-display text-2xl font-semibold text-slate-100">School Management</h1>
-          <p className="text-slate-500 text-sm mt-1">Sign in to access the dashboard</p>
+          <h1 className="text-2xl font-bold text-gray-800">School Management</h1>
+          <p className="text-gray-400 text-sm mt-1">Sign in to access the dashboard</p>
         </div>
 
         {/* Form card */}
-        <div className="card border-slate-700/60 shadow-2xl shadow-black/30 p-8">
+        <div className="card shadow-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-200/60 text-red-600 text-sm">
                 <AlertCircle size={16} className="flex-shrink-0" />
                 {error}
               </div>
@@ -91,7 +95,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -107,7 +111,7 @@ export default function Login() {
               {loading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Signing in…
+                  Signing in...
                 </>
               ) : (
                 'Sign In'
@@ -116,7 +120,7 @@ export default function Login() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-slate-600 mt-6">
+        <p className="text-center text-xs text-gray-400 mt-6">
           School Management System v1.0.0
         </p>
       </div>

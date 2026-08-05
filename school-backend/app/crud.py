@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
 
 from app import models, schemas
-from app.auth import get_password_hash
 from app.encryption import encrypt_field, decrypt_field, hash_for_dedup
 
 
@@ -22,54 +21,33 @@ async def get_user_by_username(db: AsyncSession, username: str):
     return result.scalar_one_or_none()
 
 
-async def get_user_by_email(db: AsyncSession, email: str):
-    q = select(models.User).where(models.User.email == email)
-    result = await db.execute(q)
-    return result.scalar_one_or_none()
-
-
-async def create_user(db: AsyncSession, data: schemas.UserCreate):
-    user = models.User(
-        username=data.username,
-        email=data.email,
-        hashed_password=get_password_hash(data.password),
-        full_name=data.full_name,
-        role=data.role,
-    )
-    db.add(user)
-    await db.flush()
-    await db.refresh(user)
-    return user
-
-
-async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
-    q = select(models.User).offset(skip).limit(limit).order_by(models.User.username)
-    result = await db.execute(q)
-    return result.scalars().all()
-
-
-async def update_user_role(db: AsyncSession, user_id: int, role: schemas.UserRole):
-    user = await get_user_by_id(db, user_id)
-    if not user:
-        return None
-    user.role = role
-    await db.flush()
-    return user
-
-
-async def update_user_password(db: AsyncSession, user_id: int, new_password: str):
-    user = await get_user_by_id(db, user_id)
-    if not user:
-        return None
-    user.hashed_password = get_password_hash(new_password)
-    await db.flush()
-    return user
-
-
 async def get_user_by_id(db: AsyncSession, user_id: int):
     q = select(models.User).where(models.User.id == user_id)
     result = await db.execute(q)
     return result.scalar_one_or_none()
+
+
+async def update_user_profile(db: AsyncSession, user_id: int, data: schemas.UserUpdate):
+    """Update user profile fields (full_name, email)."""
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        return None
+    for field, value in data.model_dump(exclude_none=True).items():
+        if field in {"full_name", "email"}:
+            if field == "email":
+                # Check email isn't taken by another user
+                existing = await db.execute(
+                    select(models.User).where(
+                        models.User.email == value,
+                        models.User.id != user_id
+                    )
+                )
+                if existing.scalar_one_or_none():
+                    raise ValueError("Email already in use")
+            setattr(user, field, value)
+    await db.flush()
+    await db.refresh(user)
+    return user
 
 
 # ─── Students ─────────────────────────────────────────────────────────────────
@@ -389,10 +367,22 @@ def attach_invoice_financials(invoice: models.Invoice) -> dict:
     return {"total_amount": total, "amount_paid": paid, "balance_due": balance}
 
 
+async def get_invoice_by_student_month(db: AsyncSession, student_id: int, billing_month: str):
+    """Check if an invoice already exists for this student + month combo."""
+    q = select(models.Invoice).where(
+        models.Invoice.student_id == student_id,
+        models.Invoice.billing_month == billing_month
+    )
+    result = await db.execute(q)
+    return result.scalar_one_or_none()
+
+
 async def get_invoices(db: AsyncSession, student_id: int = None, status: str = None,
                        skip: int = 0, limit: int = 50):
     q = select(models.Invoice).options(
-        selectinload(models.Invoice.line_items).selectinload(models.InvoiceLineItem.fee_type),
+        selectinload(models.Invoice.line_items)
+            .selectinload(models.InvoiceLineItem.fee_type)
+            .selectinload(models.FeeType.class_overrides),
         selectinload(models.Invoice.student),
         selectinload(models.Invoice.payments)
     )
@@ -407,7 +397,9 @@ async def get_invoices(db: AsyncSession, student_id: int = None, status: str = N
 
 async def get_invoice(db: AsyncSession, invoice_id: int):
     q = select(models.Invoice).options(
-        selectinload(models.Invoice.line_items).selectinload(models.InvoiceLineItem.fee_type),
+        selectinload(models.Invoice.line_items)
+            .selectinload(models.InvoiceLineItem.fee_type)
+            .selectinload(models.FeeType.class_overrides),
         selectinload(models.Invoice.student),
         selectinload(models.Invoice.payments)
     ).where(models.Invoice.id == invoice_id)

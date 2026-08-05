@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Search, Users, Edit2, Trash2, Link, Eye, UserCheck, Phone } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAuth } from '../contexts/AuthContext'
 import { studentsApi, parentsApi } from '../api'
 import {
   SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, StatusBadge,
@@ -23,8 +22,6 @@ const emptyForm = {
 }
 
 export default function Students() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -58,10 +55,7 @@ export default function Students() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { 
-    setSkip(0)
-  }, [statusFilter, search])
-
+  useEffect(() => { setSkip(0) }, [statusFilter, search])
   useEffect(() => { load() }, [statusFilter, search, skip])
 
   const validateCnicBform = (val) => /^\d{5}-\d{7}-\d$/.test(val)
@@ -91,7 +85,6 @@ export default function Students() {
     }
     setSaving(true)
     try {
-      // Only send editable fields — CNIC is immutable after creation
       await studentsApi.update(selected.id, {
         first_name: editForm.first_name,
         last_name: editForm.last_name,
@@ -158,20 +151,18 @@ export default function Students() {
         title="Students Directory"
         description={`${students.length} students currently listed`}
         action={
-          isAdmin && (
-            <button onClick={() => setCreateOpen(true)} className="btn-primary">
-              <Plus size={16} /> Add Student
-            </button>
-          )
+          <button onClick={() => setCreateOpen(true)} className="btn-primary">
+            <Plus size={16} /> Add Student
+          </button>
         }
       />
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <div className="relative flex-1 min-w-0">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            className="input pl-9"
+            className="input pl-9 pr-10"
             placeholder="Search by name or class..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
@@ -179,7 +170,7 @@ export default function Students() {
           />
           <button
             onClick={() => setSearch(searchInput)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
             title="Search"
           >
             <Search size={14} />
@@ -200,66 +191,56 @@ export default function Students() {
             <EmptyState icon={Users} title="No students found"
               description="Start by adding your first student to the system"
               action={
-                isAdmin && (
-                  <button onClick={() => setCreateOpen(true)} className="btn-primary">
-                    <Plus size={15} />Add Student
-                  </button>
-                )
+                <button onClick={() => setCreateOpen(true)} className="btn-primary">
+                  <Plus size={15} />Add Student
+                </button>
               }
             />
           )}
         >
           {students.map(s => (
             <tr key={s.id} className="table-row">
-              <td className="td font-medium text-slate-200">{s.first_name} {s.last_name}</td>
+              <td className="td font-medium text-gray-700">{s.first_name} {s.last_name}</td>
               <td className="td">
-                <span className="font-mono text-xs bg-slate-800 px-2 py-1 rounded-lg">Class {s.current_class}</span>
+                <span className="font-mono text-xs bg-gray-100 px-2.5 py-1 rounded-lg text-gray-600">Class {s.current_class}</span>
               </td>
-              <td className="td font-mono text-xs text-slate-400">{s.cnic_bform}</td>
-              <td className="td text-slate-400">{s.admission_date}</td>
+              <td className="td font-mono text-xs text-gray-400">{s.cnic_bform}</td>
+              <td className="td text-gray-500 text-sm">{s.admission_date}</td>
               <td className="td">
-                {isAdmin ? (
-                  <select
-                    value={s.status}
-                    onChange={async (e) => {
-                      try {
-                        await studentsApi.update(s.id, { status: e.target.value });
-                        toast.success('Student status updated!');
-                        load();
-                      } catch (err) {
-                        toast.error('Failed to update status');
-                      }
-                    }}
-                    className={`badge badge-${s.status} cursor-pointer appearance-none outline-none`}
-                    style={{ paddingRight: '0.5rem' }}
-                  >
-                    <option value="active" className="bg-slate-900 text-emerald-400">active</option>
-                    <option value="withdrawn" className="bg-slate-900 text-red-400">withdrawn</option>
-                    <option value="graduated" className="bg-slate-900 text-brand-400">graduated</option>
-                  </select>
-                ) : (
-                  <span className={`badge badge-${s.status}`}>{s.status}</span>
-                )}
+                <select
+                  value={s.status}
+                  onChange={async (e) => {
+                    try {
+                      await studentsApi.update(s.id, { status: e.target.value });
+                      toast.success('Student status updated!');
+                      load();
+                    } catch (err) {
+                      toast.error('Failed to update status');
+                    }
+                  }}
+                  className={`badge badge-${s.status} cursor-pointer appearance-none outline-none`}
+                  style={{ paddingRight: '0.5rem' }}
+                >
+                  <option value="active" className="bg-white text-teal-600">active</option>
+                  <option value="withdrawn" className="bg-white text-red-400">withdrawn</option>
+                  <option value="graduated" className="bg-white text-teal-600">graduated</option>
+                </select>
               </td>
               <td className="td">
                 <div className="flex items-center gap-1">
-                  <button onClick={() => openDetail(s)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="View">
+                  <button onClick={() => openDetail(s)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600" title="View">
                     <Eye size={14} />
                   </button>
-                  {isAdmin && (
-                    <>
-                      <button onClick={() => openLink(s)} className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Link parent">
-                        <Link size={14} />
-                      </button>
-                      <button onClick={() => { setSelected(s); setEditForm({ first_name: s.first_name, last_name: s.last_name, current_class: s.current_class, status: s.status }); setEditOpen(true) }}
-                        className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Edit">
-                        <Edit2 size={14} />
-                      </button>
-                      <button onClick={() => handleDeleteClick(s)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </>
-                  )}
+                  <button onClick={() => openLink(s)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600" title="Link parent">
+                    <Link size={14} />
+                  </button>
+                  <button onClick={() => { setSelected(s); setEditForm({ first_name: s.first_name, last_name: s.last_name, current_class: s.current_class, status: s.status }); setEditOpen(true) }}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600" title="Edit">
+                    <Edit2 size={14} />
+                  </button>
+                  <button onClick={() => handleDeleteClick(s)} className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-500" title="Delete">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </td>
             </tr>
@@ -268,12 +249,12 @@ export default function Students() {
       )}
 
       {!loading && (
-        <Pagination 
-          skip={skip} 
-          limit={limit} 
-          totalItemsInCurrentPage={students.length} 
-          onNext={() => setSkip(skip + limit)} 
-          onPrev={() => setSkip(Math.max(0, skip - limit))} 
+        <Pagination
+          skip={skip}
+          limit={limit}
+          totalItemsInCurrentPage={students.length}
+          onNext={() => setSkip(skip + limit)}
+          onPrev={() => setSkip(Math.max(0, skip - limit))}
         />
       )}
 
@@ -286,7 +267,7 @@ export default function Students() {
           <Field label="Last Name">
             <input className="input" value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="Khan" />
           </Field>
-          <Field label="CNIC / B-Form" >
+          <Field label="CNIC / B-Form">
             <input className="input" value={form.cnic_bform} onChange={e => setForm({ ...form, cnic_bform: formatCNIC(e.target.value) })} maxLength={15} placeholder="34201-1234567-1" />
           </Field>
           <Field label="Date of Birth">
@@ -352,9 +333,9 @@ export default function Students() {
                 ['Admission Date', selected.admission_date],
                 ['Status', selected.status],
               ].map(([k, v]) => (
-                <div key={k} className="bg-slate-800/40 rounded-xl px-4 py-3">
-                  <p className="text-xs text-slate-500 mb-0.5">{k}</p>
-                  <p className="text-slate-200 font-medium capitalize">{v}</p>
+                <div key={k} className="bg-gray-50 rounded-xl px-4 py-3">
+                  <p className="text-xs text-gray-400 mb-0.5">{k}</p>
+                  <p className="text-gray-700 font-medium capitalize">{v}</p>
                 </div>
               ))}
             </div>
@@ -364,37 +345,35 @@ export default function Students() {
                 <p className="label mb-2">Parents / Guardians ({detailParents.length})</p>
                 <div className="space-y-1.5">
                   {detailParents.map(p => (
-                    <div key={p.id} className="flex items-center gap-3 bg-slate-800/40 rounded-xl px-4 py-2.5">
-                      <UserCheck size={14} className="text-brand-400" />
+                    <div key={p.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
+                      <UserCheck size={14} className="text-teal-500" />
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm text-slate-300 block truncate">{p.guardian_name}</span>
-                        <span className="text-xs text-slate-500">{p.relationship || 'Guardian'} · <Phone size={10} className="inline" /> {p.contact_no}</span>
+                        <span className="text-sm text-gray-600 block truncate">{p.guardian_name}</span>
+                        <span className="text-xs text-gray-400">{p.relationship || 'Guardian'} · <Phone size={10} className="inline" /> {p.contact_no}</span>
                       </div>
-                      {isAdmin && (
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation()
-                            try {
-                              await studentsApi.unlinkParent(selected.id, p.id)
-                              toast.success('Parent unlinked')
-                              const stuRes = await studentsApi.get(selected.id)
-                              setDetailParents(stuRes.data.parents || [])
-                              load()
-                            } catch { toast.error('Failed to unlink parent') }
-                          }}
-                          className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-slate-500 hover:text-red-400"
-                          title="Unlink parent"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          try {
+                            await studentsApi.unlinkParent(selected.id, p.id)
+                            toast.success('Parent unlinked')
+                            const stuRes = await studentsApi.get(selected.id)
+                            setDetailParents(stuRes.data.parents || [])
+                            load()
+                          } catch { toast.error('Failed to unlink parent') }
+                        }}
+                        className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-500"
+                        title="Unlink parent"
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="bg-slate-800/30 rounded-xl px-4 py-3">
-                <p className="text-xs text-slate-500">No parents linked yet</p>
+              <div className="bg-gray-50 rounded-xl px-4 py-3">
+                <p className="text-xs text-gray-400">No parents linked yet</p>
               </div>
             )}
 
@@ -403,10 +382,10 @@ export default function Students() {
                 <p className="label mb-2">Siblings ({siblings.length})</p>
                 <div className="space-y-1.5">
                   {siblings.map(sib => (
-                    <div key={sib.id} className="flex items-center gap-3 bg-slate-800/40 rounded-xl px-4 py-2.5">
-                      <Users size={14} className="text-brand-400" />
-                      <span className="text-sm text-slate-300">{sib.first_name} {sib.last_name}</span>
-                      <span className="text-xs text-slate-500 ml-auto">Class {sib.current_class}</span>
+                    <div key={sib.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
+                      <Users size={14} className="text-teal-500" />
+                      <span className="text-sm text-gray-600">{sib.first_name} {sib.last_name}</span>
+                      <span className="text-xs text-gray-400 ml-auto">Class {sib.current_class}</span>
                     </div>
                   ))}
                 </div>

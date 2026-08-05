@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Search, Users, Edit2, Trash2, Eye, Phone, Briefcase, GraduationCap } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAuth } from '../contexts/AuthContext'
 import { teachersApi } from '../api'
 import {
   SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select,
@@ -17,8 +16,6 @@ const emptyForm = {
 }
 
 export default function Teachers() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
   const [teachers, setTeachers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -47,10 +44,7 @@ export default function Teachers() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { 
-    setSkip(0)
-  }, [statusFilter, search])
-
+  useEffect(() => { setSkip(0) }, [statusFilter, search])
   useEffect(() => { load() }, [statusFilter, search, skip])
 
   const handleCreate = async () => {
@@ -108,9 +102,9 @@ export default function Teachers() {
   }
 
   const statusColors = {
-    active: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-    inactive: 'text-slate-400 bg-slate-800/60 border-slate-700/60',
-    resigned: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    active: 'badge-active',
+    inactive: 'badge-withdrawn',
+    resigned: 'badge-pending',
   }
 
   return (
@@ -119,18 +113,15 @@ export default function Teachers() {
         title="Teachers / Staff"
         description={`${teachers.length} teachers currently listed`}
         action={
-          isAdmin && (
-            <button onClick={() => setCreateOpen(true)} className="btn-primary">
-              <Plus size={16} /> Add Teacher
-            </button>
-          )
+          <button onClick={() => setCreateOpen(true)} className="btn-primary">
+            <Plus size={16} /> Add Teacher
+          </button>
         }
       />
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <div className="relative flex-1 min-w-0">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             className="input pl-9 pr-10"
             placeholder="Search by name, subject, phone..."
@@ -140,7 +131,7 @@ export default function Teachers() {
           />
           <button
             onClick={() => setSearch(searchInput)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
             title="Search"
           >
             <Search size={14} />
@@ -161,71 +152,65 @@ export default function Teachers() {
             <EmptyState icon={Users} title="No teachers found"
               description="Add teaching staff to the system"
               action={
-                isAdmin && (
-                  <button onClick={() => setCreateOpen(true)} className="btn-primary">
-                    <Plus size={15} />Add Teacher
-                  </button>
-                )
+                <button onClick={() => setCreateOpen(true)} className="btn-primary">
+                  <Plus size={15} />Add Teacher
+                </button>
               }
             />
           )}
         >
           {teachers.map(t => (
             <tr key={t.id} className="table-row">
-              <td className="td font-medium text-slate-200">{t.first_name} {t.last_name}</td>
-              <td className="td text-slate-400">
+              <td className="td font-medium text-gray-700">{t.first_name} {t.last_name}</td>
+              <td className="td text-gray-500">
                 {t.subject ? (
                   <span className="inline-flex items-center gap-1.5 text-xs">
-                    <Briefcase size={12} className="text-brand-400" />
+                    <Briefcase size={12} className="text-teal-500" />
                     {t.subject}
                   </span>
                 ) : (
-                  <span className="text-slate-600">—</span>
+                  <span className="text-gray-300">—</span>
                 )}
               </td>
               <td className="td">
-                <a href={`tel:${t.phone}`} className="flex items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors">
+                <a href={`tel:${t.phone}`} className="flex items-center gap-1.5 text-teal-600 hover:text-teal-500 transition-colors">
                   <Phone size={13} />{t.phone}
                 </a>
               </td>
-              <td className="td text-slate-400 text-xs max-w-[140px] truncate">
+              <td className="td text-gray-500 text-xs max-w-[140px] truncate">
                 {t.qualification ? (
                   <span className="inline-flex items-center gap-1">
-                    <GraduationCap size={12} className="text-slate-500" />
+                    <GraduationCap size={12} className="text-gray-400" />
                     {t.qualification}
                   </span>
                 ) : '—'}
               </td>
-              <td className="td text-slate-400 text-xs">{t.hire_date}</td>
+              <td className="td text-gray-500 text-xs">{t.hire_date}</td>
               <td className="td">
-                <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusColors[t.status] || statusColors.active}`}>
+                <span className={`${statusColors[t.status] || statusColors.active}`}>
                   {t.status}
                 </span>
               </td>
               <td className="td">
                 <div className="flex items-center gap-1">
                   <button onClick={() => { setSelected(t); setDetailOpen(true) }}
-                    className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="View">
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600" title="View">
                     <Eye size={14} />
                   </button>
-                  {isAdmin && (
-                    <>
-                      <button onClick={() => { setSelected(t); setEditForm({
-                        first_name: t.first_name, last_name: t.last_name,
-                        email: t.email || '', phone: t.phone,
-                        subject: t.subject || '', qualification: t.qualification || '',
-                        salary: t.salary ? String(t.salary) : '',
-                        address: t.address || '', status: t.status
-                      }); setEditOpen(true) }}
-                        className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Edit">
-                        <Edit2 size={14} />
-                      </button>
-                      <button onClick={() => handleDeleteClick(t)}
-                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </>
-                  )}
+                  <button onClick={() => { setSelected(t); setEditForm({
+                    first_name: t.first_name, last_name: t.last_name,
+                    email: t.email || '', phone: t.phone,
+                    subject: t.subject || '', qualification: t.qualification || '',
+                    salary: t.salary ? String(t.salary) : '',
+                    address: t.address || '', status: t.status
+                  }); setEditOpen(true) }}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600" title="Edit">
+                    <Edit2 size={14} />
+                  </button>
+                  <button onClick={() => handleDeleteClick(t)}
+                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-500" title="Delete">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </td>
             </tr>
@@ -234,12 +219,12 @@ export default function Teachers() {
       )}
 
       {!loading && (
-        <Pagination 
-          skip={skip} 
-          limit={limit} 
-          totalItemsInCurrentPage={teachers.length} 
-          onNext={() => setSkip(skip + limit)} 
-          onPrev={() => setSkip(Math.max(0, skip - limit))} 
+        <Pagination
+          skip={skip}
+          limit={limit}
+          totalItemsInCurrentPage={teachers.length}
+          onNext={() => setSkip(skip + limit)}
+          onPrev={() => setSkip(Math.max(0, skip - limit))}
         />
       )}
 
@@ -347,16 +332,15 @@ export default function Teachers() {
               ['Status', selected.status],
               ['Address', selected.address || '—'],
             ].map(([k, v]) => (
-              <div key={k} className={`${k === 'Address' ? 'col-span-2' : ''} bg-slate-800/40 rounded-xl px-4 py-3`}>
-                <p className="text-xs text-slate-500 mb-0.5">{k}</p>
-                <p className="text-slate-200 font-medium capitalize">{v}</p>
+              <div key={k} className={`${k === 'Address' ? 'col-span-2' : ''} bg-gray-50 rounded-xl px-4 py-3`}>
+                <p className="text-xs text-gray-400 mb-0.5">{k}</p>
+                <p className="text-gray-700 font-medium capitalize">{v}</p>
               </div>
             ))}
           </div>
         )}
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         open={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}

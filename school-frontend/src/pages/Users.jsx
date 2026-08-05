@@ -6,8 +6,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Table, Modal, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
 
 const ROLE_OPTIONS = [
-  { value: 'staff', label: 'Staff', icon: ShieldOff, color: 'text-slate-400 bg-slate-800/60 border-slate-700/60' },
-  { value: 'admin', label: 'Admin', icon: Shield, color: 'text-brand-400 bg-brand-500/10 border-brand-500/20' },
+  { value: 'staff', label: 'Staff', icon: ShieldOff, color: 'text-gray-500 bg-gray-100 border-gray-200' },
+  { value: 'admin', label: 'Admin', icon: Shield, color: 'text-teal-600 bg-teal-50 border-teal-200' },
 ]
 
 export default function Users() {
@@ -98,17 +98,16 @@ export default function Users() {
     } finally { setSaving(false) }
   }
 
-  // ─── Role guard: only admins can access this page ───────────────────────
   const { user } = useAuth()
   if (user?.role !== 'admin') {
     return (
       <div className="animate-fade-in">
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mb-5 border border-red-500/20">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 stat-card-icon">
             <ShieldX size={28} className="text-red-400" />
           </div>
-          <p className="font-display text-lg font-semibold text-slate-200 mb-1">Access Denied</p>
-          <p className="text-sm text-slate-500 max-w-sm">
+          <p className="text-lg font-semibold text-gray-700 mb-1">Access Denied</p>
+          <p className="text-sm text-gray-400 max-w-sm">
             Only administrators can manage user accounts. If you need access, contact your system administrator.
           </p>
         </div>
@@ -128,9 +127,8 @@ export default function Users() {
         }
       />
 
-      {/* Search */}
       <div className="relative mb-5 max-w-sm">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           className="input pl-9"
           placeholder="Search by username, email, role..."
@@ -155,10 +153,10 @@ export default function Users() {
             return (
               <tr key={u.id} className="table-row">
                 <td className="td">
-                  <span className="font-medium text-slate-200">@{u.username}</span>
+                  <span className="font-medium text-gray-700">@{u.username}</span>
                 </td>
-                <td className="td text-slate-400">{u.full_name || '—'}</td>
-                <td className="td text-slate-400 text-xs">{u.email}</td>
+                <td className="td text-gray-500">{u.full_name || '—'}</td>
+                <td className="td text-gray-500 text-xs">{u.email}</td>
                 <td className="td">
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${roleConfig.color}`}>
@@ -167,7 +165,7 @@ export default function Users() {
                     </span>
                     <button
                       onClick={() => handleRoleToggle(u)}
-                      className="p-1 hover:bg-slate-700 rounded-lg transition-colors text-slate-500 hover:text-slate-300"
+                      className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
                       title={`Switch to ${u.role === 'admin' ? 'staff' : 'admin'}`}
                     >
                       <ShieldOff size={12} />
@@ -179,19 +177,17 @@ export default function Users() {
                     {u.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td className="td text-xs text-slate-500">
+                <td className="td text-xs text-gray-400">
                   {new Date(u.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </td>
                 <td className="td">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => openResetPwd(u)}
-                      className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
-                      title="Reset Password"
-                    >
-                      <Key size={14} />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => openResetPwd(u)}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                    title="Reset Password"
+                  >
+                    <Key size={14} />
+                  </button>
                 </td>
               </tr>
             )
@@ -225,7 +221,7 @@ export default function Users() {
                   <option value="staff">Staff</option>
                   <option value="admin">Admin</option>
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
               </div>
             </Field>
           </div>
@@ -246,8 +242,8 @@ export default function Users() {
       {/* Reset Password Modal */}
       <Modal open={resetPwdOpen} onClose={() => setResetPwdOpen(false)} title={`Reset Password — ${selectedUser?.username}`} maxWidth="max-w-sm">
         <div className="space-y-4">
-          <p className="text-sm text-slate-400">
-            Set a new password for <span className="text-slate-200 font-medium">@{selectedUser?.username}</span>
+          <p className="text-sm text-gray-500">
+            Set a new password for <span className="text-gray-700 font-medium">@{selectedUser?.username}</span>
           </p>
           <Field label="New Password">
             <input type="password" className="input" value={resetPwdForm.new_password}

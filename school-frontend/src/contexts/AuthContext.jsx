@@ -14,7 +14,14 @@ export function AuthProvider({ children }) {
         const res = await api.get('/auth/me')
         setUser(res.data)
       } catch {
-        setUser(null)
+        // Auto-login as Muhammad Nawaz if no session exists
+        try {
+          await api.post('/auth/login', { username: 'muhammadnawaz', password: '12345' })
+          const res = await api.get('/auth/me')
+          setUser(res.data)
+        } catch {
+          setUser(null)
+        }
       } finally {
         setLoading(false)
       }
@@ -22,13 +29,22 @@ export function AuthProvider({ children }) {
     restore()
   }, [])
 
+  // ─── Refresh user (re-fetch from /auth/me) ────────────────────────────────
+  const refreshUser = useCallback(async () => {
+    try {
+      const res = await api.get('/auth/me')
+      setUser(res.data)
+    } catch {
+      setUser(null)
+    }
+  }, [])
+
   // ─── Login ─────────────────────────────────────────────────────────────────
   const login = useCallback(async (username, password) => {
     await api.post('/auth/login', { username, password })
-    const userRes = await api.get('/auth/me')
-    setUser(userRes.data)
-    return userRes.data
-  }, [])
+    await refreshUser()
+    return user
+  }, [refreshUser, user])
 
   // ─── Logout ────────────────────────────────────────────────────────────────
   const logout = useCallback(async () => {
@@ -43,7 +59,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

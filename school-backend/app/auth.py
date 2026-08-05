@@ -1,13 +1,13 @@
 """
 Authentication Utilities — Password hashing, JWT creation/verification,
-refresh token management, and role-based access control.
+refresh token management, and simple authentication.
 """
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy import select
@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.models import User, UserRole
+from app.models import User
 
 # ─── In-memory token blacklist (replace with Redis in production) ─────────────
 # Stores (jti, expiry) of invalidated refresh tokens
@@ -129,21 +129,3 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
-
-
-def require_role(allowed_roles: list[UserRole]):
-    """Factory: returns a dependency that checks if the user has one of the allowed roles."""
-    async def _role_checker(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role not in allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Requires one of these roles: {[r.value for r in allowed_roles]}",
-            )
-        return current_user
-    return _role_checker
-
-
-# ─── Convenience helpers ───────────────────────────────────────────────────────
-
-require_admin = require_role([UserRole.ADMIN])
-require_staff_or_admin = require_role([UserRole.ADMIN, UserRole.STAFF])

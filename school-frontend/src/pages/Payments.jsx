@@ -2,12 +2,9 @@ import { useEffect, useState } from 'react'
 import { Plus, CreditCard, Search, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { paymentsApi, invoicesApi } from '../api'
-import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, PageLoader, EmptyState, Spinner } from '../components/UI'
 
 export default function Payments() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
   const [payments, setPayments] = useState([])
   const [loading, setLoading] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
@@ -41,7 +38,6 @@ export default function Payments() {
   const openCreate = async () => {
     try {
       const res = await invoicesApi.list({ limit: 200 })
-      // Only show unpaid/partial invoices
       setInvoices(res.data.filter(i => i.status !== 'paid'))
     } catch { toast.error('Failed to load invoices') }
     setCreateOpen(true)
@@ -96,34 +92,42 @@ export default function Payments() {
         title="Payments"
         description="Record fee payments against invoices"
         action={
-          isAdmin && (
-            <button onClick={openCreate} className="btn-primary">
-              <Plus size={16} /> Record Payment
-            </button>
-          )
+          <button onClick={openCreate} className="btn-primary">
+            <Plus size={16} /> Record Payment
+          </button>
         }
       />
 
       {/* Total collected card */}
       {filtered.length > 0 && (
-        <div className="card border-emerald-500/20 bg-emerald-500/5 px-5 py-4 flex items-center gap-4 mb-5">
-          <CreditCard size={20} className="text-emerald-400" />
+        <div className="card px-5 py-4 flex items-center gap-4 mb-6 glow-teal">
+          <div className="w-11 h-11 rounded-xl flex items-center justify-center stat-card-icon">
+            <CreditCard size={20} className="text-teal-600" />
+          </div>
           <div>
-            <p className="text-sm font-medium text-emerald-300">Total Collected</p>
-            <p className="text-xs text-slate-400">PKR {totalCollected.toLocaleString()} across {filtered.length} transactions</p>
+            <p className="text-sm font-semibold text-gray-700">Total Collected</p>
+            <p className="text-xs text-gray-400">PKR {totalCollected.toLocaleString()} across {filtered.length} transactions</p>
           </div>
         </div>
       )}
 
-      <div className="flex gap-4 mb-5">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+      {/* Filters */}
+      <div className="flex gap-3 mb-5">
+        <div className="relative flex-1 max-w-sm min-w-0">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
-            className="input pl-9"
+            className="input pl-9 pr-10"
             placeholder="Search by invoice # or notes..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+            title="Search"
+          >
+            <Search size={14} />
+          </button>
         </div>
         <input
           type="date"
@@ -144,33 +148,33 @@ export default function Payments() {
           headers={['Payment #', 'Invoice #', 'Amount Paid', 'Payment Date', 'Notes', 'Recorded At', 'Actions']}
           empty={filtered.length === 0 && (
             <EmptyState icon={CreditCard} title="No payments recorded"
-              description="Record a payment against an invoice"            action={isAdmin && <button onClick={openCreate} className="btn-primary"><Plus size={15} />Record Payment</button>}
-          />)}
+              description="Record a payment against an invoice"
+              action={<button onClick={openCreate} className="btn-primary"><Plus size={15} />Record Payment</button>}
+            />
+          )}
         >
           {filtered.map(p => (
             <tr key={p.id} className="table-row">
-              <td className="td font-mono text-xs text-slate-400">#{String(p.id).padStart(4, '0')}</td>
+              <td className="td font-mono text-xs text-gray-500">#{String(p.id).padStart(4, '0')}</td>
               <td className="td font-mono text-xs">
-                <span className="bg-slate-800 px-2 py-1 rounded-lg">INV-{String(p.invoice_id).padStart(4, '0')}</span>
+                <span className="bg-gray-100 px-2.5 py-1 rounded-lg text-gray-600 font-medium">INV-{String(p.invoice_id).padStart(4, '0')}</span>
               </td>
-              <td className="td font-mono font-semibold text-emerald-400">
+              <td className="td font-mono font-semibold text-emerald-600">
                 PKR {Number(p.amount_paid).toLocaleString()}
               </td>
-              <td className="td text-slate-300">{p.payment_date}</td>
-              <td className="td text-slate-400 max-w-xs truncate">{p.notes || '—'}</td>
-              <td className="td text-xs text-slate-500">
+              <td className="td text-gray-600 text-sm">{p.payment_date}</td>
+              <td className="td text-gray-500 max-w-xs truncate">{p.notes || '—'}</td>
+              <td className="td text-xs text-gray-400">
                 {new Date(p.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
               </td>
               <td className="td">
-                {isAdmin && (
-                  <button 
-                    onClick={() => handleVoidClick(p)} 
-                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" 
-                    title="Void Payment"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
+                <button
+                  onClick={() => handleVoidClick(p)}
+                  className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-500"
+                  title="Void Payment"
+                >
+                  <Trash2 size={14} />
+                </button>
               </td>
             </tr>
           ))}
@@ -178,12 +182,12 @@ export default function Payments() {
       )}
 
       {!loading && (
-        <Pagination 
-          skip={skip} 
-          limit={limit} 
-          totalItemsInCurrentPage={payments.length} 
-          onNext={() => setSkip(skip + limit)} 
-          onPrev={() => setSkip(Math.max(0, skip - limit))} 
+        <Pagination
+          skip={skip}
+          limit={limit}
+          totalItemsInCurrentPage={payments.length}
+          onNext={() => setSkip(skip + limit)}
+          onPrev={() => setSkip(Math.max(0, skip - limit))}
         />
       )}
 
@@ -195,7 +199,7 @@ export default function Payments() {
               <option value="">Select invoice...</option>
               {invoices.map(inv => (
                 <option key={inv.id} value={inv.id}>
-                  INV-{String(inv.id).padStart(4, '0')} — {inv.billing_month} 
+                  INV-{String(inv.id).padStart(4, '0')} — {inv.billing_month}
                   {inv.student ? ` (${inv.student.first_name} ${inv.student.last_name})` : ''}
                   {' '}· Balance PKR {Number(inv.balance_due || 0).toLocaleString()}
                 </option>
@@ -207,13 +211,13 @@ export default function Payments() {
           {selectedInvoice && (
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: 'Total', value: selectedInvoice.total_amount, color: 'text-slate-200' },
-                { label: 'Paid', value: selectedInvoice.amount_paid, color: 'text-emerald-400' },
-                { label: 'Balance', value: selectedInvoice.balance_due, color: 'text-amber-400' },
+                { label: 'Total', value: selectedInvoice.total_amount, color: 'text-gray-700' },
+                { label: 'Paid', value: selectedInvoice.amount_paid, color: 'text-emerald-600' },
+                { label: 'Balance', value: selectedInvoice.balance_due, color: 'text-amber-500' },
               ].map(({ label, value, color }) => (
-                <div key={label} className="bg-slate-800/50 rounded-xl px-3 py-2 text-center">
-                  <p className="text-xs text-slate-500">{label}</p>
-                  <p className={`text-sm font-mono font-medium ${color}`}>PKR {Number(value || 0).toLocaleString()}</p>
+                <div key={label} className="bg-gray-50 rounded-xl px-3 py-2.5 text-center">
+                  <p className="text-xs text-gray-400">{label}</p>
+                  <p className={`text-sm font-mono font-semibold ${color}`}>PKR {Number(value || 0).toLocaleString()}</p>
                 </div>
               ))}
             </div>

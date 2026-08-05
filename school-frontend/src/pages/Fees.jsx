@@ -2,14 +2,11 @@ import { useEffect, useState } from 'react'
 import { Plus, DollarSign, Edit2, ChevronDown, ChevronUp } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { feesApi } from '../api'
-import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
 
 const CLASSES = ['Nursery','KG','1','2','3','4','5','6','7','8','9','10']
 
 export default function Fees() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
   const [fees, setFees] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
@@ -78,97 +75,87 @@ export default function Fees() {
         title="Fee Structure"
         description="Define fee types and per-class overrides"
         action={
-          isAdmin && (
-            <button onClick={() => setCreateOpen(true)} className="btn-primary">
-              <Plus size={16} /> Add Fee Type
-            </button>
-          )
+          <button onClick={() => setCreateOpen(true)} className="btn-primary">
+            <Plus size={16} /> Add Fee Type
+          </button>
         }
       />
 
       {loading ? <PageLoader /> : fees.length === 0 ? (
         <EmptyState icon={DollarSign} title="No fee types yet"
-          description="Add tuition fee, library fee, etc."          action={isAdmin && <button onClick={() => setCreateOpen(true)} className="btn-primary"><Plus size={15} />Add Fee Type</button>}
-        />) : (
+          description="Add tuition fee, library fee, etc."
+          action={<button onClick={() => setCreateOpen(true)} className="btn-primary"><Plus size={15} />Add Fee Type</button>}
+        />
+      ) : (
         <div className="space-y-3">
           {fees.map(fee => (
             <div key={fee.id} className="card overflow-hidden">
               <div
-                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-800/30 transition-colors"
+                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50/80 transition-colors"
                 onClick={() => setExpanded(expanded === fee.id ? null : fee.id)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
-                    <DollarSign size={16} className="text-brand-400" />
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center stat-card-icon">
+                    <DollarSign size={16} className="text-teal-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-slate-200">{fee.fee_name}</p>
-                    {fee.description && <p className="text-xs text-slate-500 mt-0.5">{fee.description}</p>}
+                    <p className="font-semibold text-gray-700">{fee.fee_name}</p>
+                    {fee.description && <p className="text-xs text-gray-400 mt-0.5">{fee.description}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="font-mono font-medium text-slate-200">PKR {Number(fee.default_amount).toLocaleString()}</p>
-                    <p className="text-xs text-slate-500">default / month</p>
+                    <p className="font-mono font-semibold text-gray-700">PKR {Number(fee.default_amount).toLocaleString()}</p>
+                    <p className="text-xs text-gray-400">default / month</p>
                   </div>
-                  {isAdmin ? (
-                    <span 
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await feesApi.update(fee.id, { is_active: !fee.is_active });
-                          toast.success('Fee status updated!');
-                          load();
-                        } catch (err) {
-                          toast.error('Failed to update status');
-                        }
-                      }}
-                      className={`badge ${fee.is_active ? 'badge-active' : 'badge-withdrawn'} cursor-pointer`}
-                      title="Click to toggle status"
-                    >
-                      {fee.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  ) : (
-                    <span className={`badge ${fee.is_active ? 'badge-active' : 'badge-withdrawn'}`}>
-                      {fee.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  )}
+                  <span
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await feesApi.update(fee.id, { is_active: !fee.is_active });
+                        toast.success('Fee status updated!');
+                        load();
+                      } catch (err) {
+                        toast.error('Failed to update status');
+                      }
+                    }}
+                    className={`badge ${fee.is_active ? 'badge-active' : 'badge-withdrawn'} cursor-pointer`}
+                    title="Click to toggle status"
+                  >
+                    {fee.is_active ? 'Active' : 'Inactive'}
+                  </span>
                   <div className="flex items-center gap-1">
-                    {isAdmin && (
-                      <button
-                        onClick={e => { e.stopPropagation(); setSelected(fee); setEditForm({ fee_name: fee.fee_name, default_amount: fee.default_amount, description: fee.description || '', is_active: fee.is_active }); setEditOpen(true) }}
-                        className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                    )}
-                    {expanded === fee.id ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
+                    <button
+                      onClick={e => { e.stopPropagation(); setSelected(fee); setEditForm({ fee_name: fee.fee_name, default_amount: fee.default_amount, description: fee.description || '', is_active: fee.is_active }); setEditOpen(true) }}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    {expanded === fee.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                   </div>
                 </div>
               </div>
 
               {/* Class Overrides Panel */}
               {expanded === fee.id && (
-                <div className="border-t border-slate-800/60 bg-slate-900/50 px-5 py-4">
+                <div className="border-t border-gray-100 bg-gray-50/80 px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Class-specific Overrides</p>
-                    {isAdmin && (
-                      <button
-                        onClick={() => { setSelected(fee); setOverrideOpen(true) }}
-                        className="btn-secondary text-xs py-1.5 px-3"
-                      >
-                        <Plus size={12} /> Add Override
-                      </button>
-                    )}
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Class-specific Overrides</p>
+                    <button
+                      onClick={() => { setSelected(fee); setOverrideOpen(true) }}
+                      className="btn-secondary text-xs py-1.5 px-3"
+                    >
+                      <Plus size={12} /> Add Override
+                    </button>
                   </div>
                   {fee.class_overrides.length === 0 ? (
-                    <p className="text-sm text-slate-500">No overrides — all classes use default amount</p>
+                    <p className="text-sm text-gray-400">No overrides — all classes use default amount</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {fee.class_overrides.map(ov => (
-                        <div key={ov.id} className="flex items-center gap-2 bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2">
-                          <span className="text-xs text-slate-400">Class {ov.class_name}</span>
-                          <span className="text-xs font-mono text-slate-200 font-medium">PKR {Number(ov.amount).toLocaleString()}</span>
+                        <div key={ov.id} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                          <span className="text-xs text-gray-500">Class {ov.class_name}</span>
+                          <span className="text-xs font-mono text-gray-700 font-semibold">PKR {Number(ov.amount).toLocaleString()}</span>
                         </div>
                       ))}
                     </div>
@@ -215,8 +202,8 @@ export default function Fees() {
           </Field>
           <Field label="Status">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={editForm.is_active} onChange={e => setEditForm({ ...editForm, is_active: e.target.checked })} className="w-4 h-4 accent-brand-500" />
-              <span className="text-sm text-slate-300">Active</span>
+              <input type="checkbox" checked={editForm.is_active} onChange={e => setEditForm({ ...editForm, is_active: e.target.checked })} className="w-4 h-4 accent-teal-600 rounded" />
+              <span className="text-sm text-gray-600">Active</span>
             </label>
           </Field>
         </div>
