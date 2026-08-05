@@ -16,6 +16,7 @@ import Payments from './pages/Payments'
 import UsersPage from './pages/Users'
 import Login from './pages/Login'
 import { PageLoader } from './components/UI'
+import ThemeToggle from './components/ThemeToggle'
 
 const navItems = [
   { to: '/',          icon: LayoutDashboard, label: 'Dashboard' },
@@ -165,6 +166,7 @@ export default function App() {
             </p>
           </div>
           <div className="flex-1" />
+          <ThemeToggle />
           <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             {user?.username}

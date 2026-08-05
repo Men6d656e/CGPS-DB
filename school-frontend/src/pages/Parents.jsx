@@ -117,7 +117,7 @@ export default function Parents() {
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
         <input
           className="input pl-9 pr-10"
-          placeholder="Search by name, phone, or WhatsApp..."
+          placeholder="Search by name, phone, WhatsApp, or CNIC..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') setSearch(searchInput) }}

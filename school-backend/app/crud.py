@@ -189,11 +189,14 @@ def _decrypt_parent_cnic(parent: models.Parent):
 async def get_parents(db: AsyncSession, skip: int = 0, limit: int = 50, search: str = None):
     q = select(models.Parent)
     if search:
+        # Try to hash the search term for CNIC lookup
+        search_hash = hash_for_dedup(search)
         pattern = f"%{search}%"
         q = q.where(
             models.Parent.guardian_name.ilike(pattern)
             | models.Parent.contact_no.ilike(pattern)
             | models.Parent.whatsapp_no.ilike(pattern)
+            | models.Parent.cnic_hash == search_hash  # Exact match on CNIC hash
         )
     q = q.offset(skip).limit(limit).order_by(desc(models.Parent.created_at))
     result = await db.execute(q)

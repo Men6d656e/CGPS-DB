@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, FileText, Eye, Trash2 } from 'lucide-react'
+import { Plus, FileText, Eye, Trash2, Printer } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { invoicesApi, studentsApi, feesApi } from '../api'
@@ -123,6 +123,98 @@ export default function Invoices() {
     } catch { toast.error('Failed to delete invoice') }
   }
 
+  const handlePrint = (invoice) => {
+    const printWindow = window.open('', '_blank')
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice #${String(invoice.id).padStart(4, '0')}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+          .school-name { font-size: 24px; font-weight: bold; }
+          .invoice-title { font-size: 20px; color: #666; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+          .info-box { background: #f5f5f5; padding: 15px; border-radius: 8px; }
+          .info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
+          .info-value { font-size: 16px; font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+          th { background: #f5f5f5; font-weight: bold; }
+          .total-row { font-weight: bold; border-top: 2px solid #333; }
+          .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="school-name">School Management System</div>
+            <div style="color: #666;">Fee Invoice</div>
+          </div>
+          <div class="invoice-title">Invoice #${String(invoice.id).padStart(4, '0')}</div>
+        </div>
+        
+        <div class="info-grid">
+          <div class="info-box">
+            <div class="info-label">Student</div>
+            <div class="info-value">${invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : `Student #${invoice.student_id}`}</div>
+          </div>
+          <div class="info-box">
+            <div class="info-label">Class</div>
+            <div class="info-value">${invoice.student?.current_class || 'N/A'}</div>
+          </div>
+          <div class="info-box">
+            <div class="info-label">Billing Month</div>
+            <div class="info-value">${invoice.billing_month}</div>
+          </div>
+          <div class="info-box">
+            <div class="info-label">Due Date</div>
+            <div class="info-value">${invoice.due_date}</div>
+          </div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Fee Type</th>
+              <th style="text-align: right;">Amount (PKR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(invoice.line_items || []).map(li => `
+              <tr>
+                <td>${li.fee_type?.fee_name || `Fee #${li.fee_type_id}`}</td>
+                <td style="text-align: right;">${Number(li.amount).toLocaleString()}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td>Total</td>
+              <td style="text-align: right;">${Number(invoice.total_amount || 0).toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Paid</td>
+              <td style="text-align: right; color: green;">${Number(invoice.amount_paid || 0).toLocaleString()}</td>
+            </tr>
+            <tr class="total-row">
+              <td>Balance Due</td>
+              <td style="text-align: right; color: orange;">${Number(invoice.balance_due || 0).toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="footer">
+          <p>Status: ${invoice.status.toUpperCase()}</p>
+          <p>Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+      </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.print()
+  }
+
   const totalForInvoice = (inv) => Number(inv.total_amount || 0)
   const paidForInvoice = (inv) => Number(inv.amount_paid || 0)
   const balanceForInvoice = (inv) => Number(inv.balance_due || 0)
@@ -205,6 +297,10 @@ export default function Invoices() {
                   <button onClick={() => { setSelected(inv); setDetailOpen(true) }}
                     className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="View">
                     <Eye size={14} />
+                  </button>
+                  <button onClick={() => handlePrint(inv)}
+                    className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Print">
+                    <Printer size={14} />
                   </button>
                   {isAdmin && inv.status !== 'paid' && (
                     <button onClick={() => handleOverdueClick(inv)}
