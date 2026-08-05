@@ -451,6 +451,18 @@ async def add_class_override(
         raise HTTPException(status_code=409, detail="Override already exists for this class")
 
 
+@fees_router.delete("/{fee_type_id}", status_code=204)
+async def delete_fee_type(
+    fee_type_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Delete a fee type (only if not used in any invoices)."""
+    fee = await crud.delete_fee_type(db, fee_type_id)
+    if not fee:
+        raise HTTPException(status_code=404, detail="Fee type not found")
+
+
 # ─── Invoices Router ──────────────────────────────────────────────────────────
 
 invoices_router = APIRouter(prefix="/invoices", tags=["Invoices"])

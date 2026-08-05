@@ -377,6 +377,24 @@ async def add_class_override(db: AsyncSession, fee_type_id: int, data: schemas.F
     return override
 
 
+async def delete_fee_type(db: AsyncSession, fee_type_id: int):
+    """Delete a fee type (only if not used in any invoices)."""
+    fee = await get_fee_type(db, fee_type_id)
+    if fee:
+        # Check if fee type is used in any invoice line items
+        from sqlalchemy import select, func
+        used_in_invoice = await db.execute(
+            select(func.count(models.InvoiceLineItem.id)).where(
+                models.InvoiceLineItem.fee_type_id == fee_type_id
+            )
+        )
+        if used_in_invoice.scalar() > 0:
+            raise ValueError("Cannot delete fee type that is used in existing invoices")
+        await db.delete(fee)
+        await db.flush()
+    return fee
+
+
 # ─── Invoices ─────────────────────────────────────────────────────────────────
 
 def attach_invoice_financials(invoice: models.Invoice) -> dict:

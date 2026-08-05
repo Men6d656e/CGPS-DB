@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Plus, DollarSign, Edit2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, DollarSign, Edit2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { feesApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
+import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner, ConfirmModal } from '../components/UI'
 
 const CLASSES = ['Nursery','KG','1','2','3','4','5','6','7','8','9','10']
 
@@ -21,6 +21,8 @@ export default function Fees() {
   const [editForm, setEditForm] = useState({})
   const [overrideForm, setOverrideForm] = useState({ class_name: 'Nursery', amount: '' })
   const [saving, setSaving] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [feeToDelete, setFeeToDelete] = useState(null)
 
   const load = async () => {
     setLoading(true)
@@ -70,6 +72,22 @@ export default function Fees() {
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to add override')
     } finally { setSaving(false) }
+  }
+
+  const handleDeleteClick = (fee) => {
+    setFeeToDelete(fee)
+    setConfirmDeleteOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!feeToDelete) return
+    try {
+      await feesApi.delete(feeToDelete.id)
+      toast.success('Fee type deleted')
+      load()
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to delete fee type (may be used in invoices)')
+    }
   }
 
   return (
@@ -135,12 +153,21 @@ export default function Fees() {
                   )}
                   <div className="flex items-center gap-1">
                     {isAdmin && (
-                      <button
-                        onClick={e => { e.stopPropagation(); setSelected(fee); setEditForm({ fee_name: fee.fee_name, default_amount: fee.default_amount, description: fee.description || '', is_active: fee.is_active }); setEditOpen(true) }}
-                        className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
-                      >
-                        <Edit2 size={14} />
-                      </button>
+                      <>
+                        <button
+                          onClick={e => { e.stopPropagation(); setSelected(fee); setEditForm({ fee_name: fee.fee_name, default_amount: fee.default_amount, description: fee.description || '', is_active: fee.is_active }); setEditOpen(true) }}
+                          className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDeleteClick(fee) }}
+                          className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors text-slate-400 hover:text-red-400"
+                          title="Delete fee type"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
                     )}
                     {expanded === fee.id ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
                   </div>
@@ -247,6 +274,17 @@ export default function Fees() {
           </button>
         </div>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Fee Type"
+        message={feeToDelete ? `Are you sure you want to delete ${feeToDelete.fee_name}? This action cannot be undone.` : ''}
+        confirmText="Delete"
+        isDestructive={true}
+      />
     </div>
   )
 }
