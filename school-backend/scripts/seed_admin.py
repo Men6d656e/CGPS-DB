@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.database import async_session_factory
+from app.database import AsyncSessionLocal
 from app.models import User, UserRole
 from app.auth import get_password_hash
 
@@ -35,7 +35,7 @@ async def create_admin_user():
     admin_password = os.getenv("ADMIN_PASSWORD", "admin123!")
     admin_full_name = os.getenv("ADMIN_FULL_NAME", "System Administrator")
 
-    async with async_session_factory() as db:
+    async with AsyncSessionLocal() as db:
         # Check if admin user already exists
         result = await db.execute(
             select(User).where(User.username == admin_username)
