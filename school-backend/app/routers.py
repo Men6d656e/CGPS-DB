@@ -79,7 +79,7 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing refresh token",
         )
-    payload = decode_token(refresh_token, expected_type="refresh")
+    payload = await decode_token(refresh_token, expected_type="refresh", db=db)
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -97,11 +97,11 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
 
 
 @auth_router.post("/logout", status_code=204)
-async def logout(request: Request, response: Response):
+async def logout(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     """Invalidate a refresh token (adds it to the revocation list)."""
     refresh_token = request.cookies.get("refresh_token")
     if refresh_token:
-        revoke_token(refresh_token)
+        await revoke_token(refresh_token, db)
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
 

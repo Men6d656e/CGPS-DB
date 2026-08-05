@@ -42,6 +42,18 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
+# ─── Revoked Tokens (Database-backed token revocation) ────────────────────────
+
+class RevokedToken(Base):
+    """Stores revoked refresh tokens to prevent reuse after logout."""
+    __tablename__ = "revoked_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    token_jti: Mapped[str] = mapped_column(String(36), unique=True, nullable=False, index=True)
+    revoked_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+
 # ─── Enums ────────────────────────────────────────────────────────────────────
 
 class TeacherStatus(str, enum.Enum):

@@ -1,0 +1,6 @@
+\"\"\"Add revoked_tokens table for database-backed token revocation
+
+Revision ID: g1h2i3j4k5l6
+Revises: f8g8h9i0j1k3
+Create Date: 2026-08-05
+\"\"\n\nfrom typing import Sequence, Union\n\nfrom alembic import op\nimport sqlalchemy as sa\n\n\n# revision identifiers, used by Alembic.\nrevision: str = 'g1h2i3j4k5l6'\ndown_revision: Union[str, None] = 'f8g8h9i0j1k3'\nbranch_labels: Union[str, Sequence[str], None] = None\ndepends_on: Union[str, Sequence[str], None] = None\n\n\ndef upgrade() -> None:\n    op.create_table(\n        'revoked_tokens',\n        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),\n        sa.Column('token_jti', sa.String(36), nullable=False),\n        sa.Column('revoked_at', sa.DateTime(), server_default=sa.func.now(), nullable=True),\n        sa.Column('expires_at', sa.DateTime(), nullable=False),\n        sa.PrimaryKeyConstraint('id'),\n        sa.UniqueConstraint('token_jti', name='uq_revoked_token_jti'),\n    )\n    op.create_index('ix_revoked_tokens_token_jti', 'revoked_tokens', ['token_jti'])\n\n\ndef downgrade() -> None:\n    op.drop_index('ix_revoked_tokens_token_jti', table_name='revoked_tokens')\n    op.drop_table('revoked_tokens')\n
