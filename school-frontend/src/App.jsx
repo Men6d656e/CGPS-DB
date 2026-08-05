@@ -43,13 +43,13 @@ export default function App() {
   }
 
   // ─── Not authenticated — show login ─────────────────────────────────────
-  // if (!isAuthenticated) {
-  //   return (
-  //     <Routes>
-  //       <Route path="/*" element={<Login />} />
-  //     </Routes>
-  //   )
-  // }
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/*" element={<Login />} />
+      </Routes>
+    )
+  }
 
   // ─── Authenticated — show app ───────────────────────────────────────────
   const currentPage = navItems.find(n =>
