@@ -198,7 +198,7 @@ See [SPEC/SPEC2.md](SPEC/SPEC2.md) for the detailed plan derived from the deep c
 
 ## 🎨 Shadcn/UI Migration (SPEC3)
 
-See [SPEC/SPEC3.md](SPEC/SPEC3.md) for the plan to replace the raw/custom UI with **shadcn/ui** components initialized from the selected preset (`b7Br6guwa` — typography, theme colors, radius). It replaces hand-rolled components (`UI.jsx`), custom CSS classes (`.btn-*`, `.input`, `.card`, `.badge-*`, `.th/.td`), and `react-hot-toast` with shadcn components (`Button`, `Input`, `Select`, `Card`, `Dialog`, `Table`, `Badge`, `sonner`, …).
+See [SPEC/SPEC3.md](SPEC/SPEC3.md) for the plan to replace the raw/custom UI with **shadcn/ui** components initialized from the selected preset (`b7Br6guwa` — typography, theme colors, radius). It replaces hand-rolled components and custom CSS classes (`.btn-*`, `.input`, `.card`, `.badge-*`, `.th/.td`) with shadcn components (`Button`, `Input`, `Select`, `Card`, `Dialog`, `Table`, `Badge`, `sonner`, …). `src/components/UI.jsx` is **kept** as the app's composition layer — every export inside it renders real shadcn/ui primitives (see [SPEC4](SPEC/SPEC4.md), which formalizes it and consolidates the design system).
 
 ### Current Phases
 
@@ -210,6 +210,21 @@ See [SPEC/SPEC3.md](SPEC/SPEC3.md) for the plan to replace the raw/custom UI wit
 | **Phase 4** | Overlays & Feedback Migration | ✅ Complete |
 | **Phase 5** | App Shell & Theme Polish | ✅ Complete |
 | **Phase 6** | Cleanup & Final Verification | ✅ Complete |
+
+### Design System Consolidation (SPEC4)
+
+See [SPEC/SPEC4.md](SPEC/SPEC4.md) — final design-system pass on the frontend:
+semantic color tokens (`--accent-brand`, `--success`, `--warning`, `--partial`,
+`--info`), full `font-display`/`font-body` adoption, and radius normalization.
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **Phase 1** | Tokenize theme (index.css, tailwind.config, deps) | ✅ Complete |
+| **Phase 2** | Typography consolidation (font-display/body/mono) | ✅ Complete |
+| **Phase 3** | Raw-color → semantic-token migration | ✅ Complete |
+| **Phase 4** | Radius normalization (`--radius` 0.5rem) | ✅ Complete |
+| **Phase 5** | Component-layer finalization (a11y, focus, docs) | ✅ Complete |
+| **Phase 6** | Final gate (tests, lint, audits) | ⏳ In Progress |
 
 ---
 
@@ -236,8 +251,7 @@ See [SPEC/SPEC3.md](SPEC/SPEC3.md) for the plan to replace the raw/custom UI wit
 - **Recharts** 2.12.7 — Dashboard charts
 - **Lucide React** 0.383.0 — Icon library
 - **Radix UI** — Accessible primitives (dialog, select, dropdown, tooltip, …)
-- **Sonner** — Toast notifications (replaces react-hot-toast)
-- **React Hot Toast** 2.4.1 — Toast notifications *(being removed in SPEC3 Phase 4)*
+- **Sonner** — Toast notifications
 
 ### Database
 - **PostgreSQL** (via Neon DB — serverless PostgreSQL)
