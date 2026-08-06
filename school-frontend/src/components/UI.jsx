@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react'
 import { Label } from './ui/label'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -69,9 +69,10 @@ export function ErrorAlert({ message }) {
 export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }) {
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className={maxWidth}>
+      <DialogContent className={maxWidth.replace('max-w-', 'sm:max-w-')}>
         <DialogHeader>
           <DialogTitle className="font-display">{title}</DialogTitle>
+          <DialogDescription className="sr-only">{title}</DialogDescription>
         </DialogHeader>
         <div className="pt-2">{children}</div>
       </DialogContent>
