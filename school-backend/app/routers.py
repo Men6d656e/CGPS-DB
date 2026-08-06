@@ -169,7 +169,10 @@ async def list_students(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_staff_or_admin),
 ):
-    return await crud.get_students(db, skip=skip, limit=limit, status=status, search=search)
+    try:
+        return await crud.get_students(db, skip=skip, limit=limit, status=status, search=search)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @students_router.post("/", response_model=schemas.StudentOut, status_code=201)
@@ -345,7 +348,10 @@ async def list_teachers(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_staff_or_admin),
 ):
-    return await crud.get_teachers(db, skip=skip, limit=limit, status=status, search=search)
+    try:
+        return await crud.get_teachers(db, skip=skip, limit=limit, status=status, search=search)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @teachers_router.post("/", response_model=schemas.TeacherOut, status_code=201)
@@ -473,7 +479,10 @@ async def list_invoices(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_staff_or_admin),   # ← now requires auth
 ):
-    invoices = await crud.get_invoices(db, student_id=student_id, status=status, skip=skip, limit=limit)
+    try:
+        invoices = await crud.get_invoices(db, student_id=student_id, status=status, skip=skip, limit=limit)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     result = []
     for inv in invoices:
         inv_dict = schemas.InvoiceOut.model_validate(inv).model_dump()

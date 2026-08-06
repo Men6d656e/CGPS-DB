@@ -4,7 +4,7 @@ Encryption Tests — keyed dedup hashing (HMAC-SHA256)
 
 import hashlib
 
-from app.encryption import hash_for_dedup
+from app.encryption import hash_for_dedup, legacy_sha256_hash
 
 
 class TestHashForDedup:
@@ -29,3 +29,9 @@ class TestHashForDedup:
     def test_length(self):
         """HMAC-SHA256 output is 64 hex chars."""
         assert len(hash_for_dedup("35201-1234567-1")) == 64
+
+    def test_legacy_sha256_helper(self):
+        """legacy_sha256_hash matches raw SHA-256 and differs from the HMAC."""
+        value = "35201-1234567-1"
+        assert legacy_sha256_hash(value) == hashlib.sha256(value.encode("utf-8")).hexdigest()
+        assert legacy_sha256_hash(value) != hash_for_dedup(value)

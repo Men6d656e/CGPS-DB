@@ -11,7 +11,9 @@ from sqlalchemy.orm.attributes import set_committed_value
 
 from app import models, schemas
 from app.auth import get_password_hash
-from app.encryption import encrypt_field, decrypt_field, hash_for_dedup
+from app.encryption import (
+    encrypt_field, decrypt_field, hash_for_dedup, legacy_sha256_hash,
+)
 
 
 # ─── Users (Authentication) ───────────────────────────────────────────────────
@@ -80,12 +82,12 @@ def _to_enum(enum_cls, value):
     SAEnum columns persist enum *names* (e.g. "ACTIVE"), so comparing the
     column to a raw lowercase string like "active" breaks (Postgres rejects
     the value). Converting via the enum's .value lookups makes filters work.
-    Returns None for invalid values (filter is then ignored).
+    Raises ValueError for invalid values (routers translate to HTTP 422).
     """
     try:
         return enum_cls(value)
     except ValueError:
-        return None
+        raise ValueError(f"Invalid status value: {value}") from None
 
 
 # ─── Students ─────────────────────────────────────────────────────────────────
@@ -133,8 +135,14 @@ async def get_student(db: AsyncSession, student_id: int):
 
 async def create_student(db: AsyncSession, data: schemas.StudentCreate):
     cnic_hash = hash_for_dedup(data.cnic_bform)
+    legacy_hash = legacy_sha256_hash(data.cnic_bform)
     existing = await db.execute(
-        select(models.Student).where(models.Student.cnic_bform_hash == cnic_hash)
+        select(models.Student).where(
+            or_(  # match new HMAC hash OR legacy SHA-256 (pre-Phase 3 rows)
+                models.Student.cnic_bform_hash == cnic_hash,
+                models.Student.cnic_bform_hash == legacy_hash,
+            )
+        )
     )
     if existing.scalar_one_or_none():
         raise ValueError("Student with this CNIC/B-Form already exists")
@@ -207,14 +215,16 @@ def _decrypt_parent_cnic(parent: models.Parent):
 async def get_parents(db: AsyncSession, skip: int = 0, limit: int = 50, search: str = None):
     q = select(models.Parent)
     if search:
-        # Try to hash the search term for CNIC lookup
+        # Try to hash the search term for CNIC lookup (new HMAC + legacy SHA-256)
         search_hash = hash_for_dedup(search)
+        legacy_search_hash = legacy_sha256_hash(search)
         pattern = f"%{search}%"
         q = q.where(
             models.Parent.guardian_name.ilike(pattern)
             | models.Parent.contact_no.ilike(pattern)
             | models.Parent.whatsapp_no.ilike(pattern)
-            | models.Parent.cnic_hash == search_hash  # Exact match on CNIC hash
+            | models.Parent.cnic_hash == search_hash
+            | models.Parent.cnic_hash == legacy_search_hash
         )
     q = q.offset(skip).limit(limit).order_by(desc(models.Parent.created_at))
     result = await db.execute(q)
@@ -236,8 +246,14 @@ async def get_parent(db: AsyncSession, parent_id: int):
 
 async def create_parent(db: AsyncSession, data: schemas.ParentCreate):
     cnic_hash = hash_for_dedup(data.cnic)
+    legacy_hash = legacy_sha256_hash(data.cnic)
     existing = await db.execute(
-        select(models.Parent).where(models.Parent.cnic_hash == cnic_hash)
+        select(models.Parent).where(
+            or_(  # match new HMAC hash OR legacy SHA-256 (pre-Phase 3 rows)
+                models.Parent.cnic_hash == cnic_hash,
+                models.Parent.cnic_hash == legacy_hash,
+            )
+        )
     )
     if existing.scalar_one_or_none():
         raise ValueError("Parent with this CNIC already exists")

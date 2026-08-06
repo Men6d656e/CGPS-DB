@@ -50,9 +50,12 @@ class TestToEnum:
         assert crud._to_enum(models.InvoiceStatus, "partial") == models.InvoiceStatus.PARTIAL
         assert crud._to_enum(models.TeacherStatus, "resigned") == models.TeacherStatus.RESIGNED
 
-    def test_invalid_value_returns_none(self):
-        assert crud._to_enum(models.StudentStatus, "bogus") is None
-        assert crud._to_enum(models.InvoiceStatus, "") is None
+    def test_invalid_value_raises(self):
+        import pytest
+        with pytest.raises(ValueError):
+            crud._to_enum(models.StudentStatus, "bogus")
+        with pytest.raises(ValueError):
+            crud._to_enum(models.InvoiceStatus, "")
 
 
 class TestOverdueDetection:

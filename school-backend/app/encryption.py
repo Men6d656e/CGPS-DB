@@ -161,6 +161,17 @@ def hash_for_dedup(value: str) -> str:
     ).hexdigest()
 
 
+def legacy_sha256_hash(value: str) -> str:
+    """
+    Raw (unkeyed) SHA-256 digest of the value.
+
+    Used only to match hashes created BEFORE the keyed-HMAC migration
+    (SPEC2 Phase 3). New hashes use :func:`hash_for_dedup`; this helper keeps
+    dedup lookups working for legacy rows until rehash_dedup_hashes.py runs.
+    """
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
 # ─── Bulk Re-encryption Helpers ───────────────────────────────────────────────
 
 def ensure_encrypted(value: str) -> tuple[str, str]:
