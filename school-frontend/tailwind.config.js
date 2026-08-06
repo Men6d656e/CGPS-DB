@@ -46,22 +46,36 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // ── Legacy brand palette (kept until SPEC3 phases migrate pages) ──
-        slate: {
-          950: '#020617',
+        // ── Semantic brand + status tokens (SPEC4 Phase 1) ──
+        'accent-brand': {
+          DEFAULT: 'hsl(var(--accent-brand))',
+          foreground: 'hsl(var(--accent-brand-foreground))',
+          strong: 'hsl(var(--accent-brand-strong))',
         },
-        brand: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          400: '#38bdf8',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
+        success: {
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success))',
         },
-        gold: {
-          400: '#fbbf24',
-          500: '#f59e0b',
-        }
+        warning: {
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning))',
+        },
+        partial: {
+          DEFAULT: 'hsl(var(--partial))',
+          foreground: 'hsl(var(--partial))',
+        },
+        info: {
+          DEFAULT: 'hsl(var(--info))',
+          foreground: 'hsl(var(--info))',
+        },
+      },
+      fontSize: {
+        xs: ['0.75rem', { lineHeight: '1rem' }],
+        sm: ['0.8125rem', { lineHeight: '1.25rem' }],
+        base: ['0.875rem', { lineHeight: '1.5rem' }],
+        lg: ['1.0625rem', { lineHeight: '1.5rem' }],
+        xl: ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],
       },
       borderRadius: {
         lg: 'var(--radius)',
