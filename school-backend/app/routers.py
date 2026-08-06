@@ -540,8 +540,11 @@ async def delete_invoice(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Delete an invoice and all its line items and payments (cascade)."""
-    invoice = await crud.delete_invoice(db, invoice_id)
+    """Delete an invoice (blocked while it has non-voided payments)."""
+    try:
+        invoice = await crud.delete_invoice(db, invoice_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
@@ -583,7 +586,7 @@ async def delete_payment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Void/delete a payment (recalculates invoice status automatically)."""
+    """Void a payment (soft delete — recalculates invoice status automatically)."""
     payment = await crud.delete_payment(db, payment_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")

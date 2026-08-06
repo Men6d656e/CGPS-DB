@@ -314,6 +314,7 @@ class PaymentOut(OrmBase):
     amount_paid: Decimal
     payment_date: date
     notes: Optional[str]
+    is_voided: bool = False
     created_at: datetime
 
 

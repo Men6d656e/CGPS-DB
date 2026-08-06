@@ -4,7 +4,7 @@ CRUD Operations — Database logic separated from routes
 
 from datetime import date, datetime
 from decimal import Decimal
-from sqlalchemy import select, func, and_, desc, text
+from sqlalchemy import select, func, and_, or_, desc
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
@@ -423,11 +423,20 @@ async def delete_fee_type(db: AsyncSession, fee_type_id: int):
 def attach_invoice_financials(invoice: models.Invoice) -> dict:
     """Compute total_amount, amount_paid, balance_due from loaded relationships.
     (Renamed from _attach_invoice_financials to make it a proper public function.)
+    Voided payments are excluded from the paid amount.
     """
     total = sum(item.amount for item in invoice.line_items)
-    paid = sum(p.amount_paid for p in invoice.payments)
+    paid = sum(p.amount_paid for p in invoice.payments if not p.is_voided)
     balance = Decimal(str(total)) - Decimal(str(paid))
     return {"total_amount": total, "amount_paid": paid, "balance_due": balance}
+
+
+def _apply_overdue(invoice: models.Invoice, today: date) -> None:
+    """Mark unpaid past-due invoices as overdue (in-memory, no DB write)."""
+    if invoice.status in (models.InvoiceStatus.PENDING, models.InvoiceStatus.PARTIAL):
+        fin = attach_invoice_financials(invoice)
+        if Decimal(str(fin["balance_due"])) > 0 and invoice.due_date < today:
+            set_committed_value(invoice, 'status', models.InvoiceStatus.OVERDUE)
 
 
 async def get_invoices(db: AsyncSession, student_id: int = None, status: str = None,
@@ -441,11 +450,23 @@ async def get_invoices(db: AsyncSession, student_id: int = None, status: str = N
         q = q.where(models.Invoice.student_id == student_id)
     if status:
         status_enum = _to_enum(models.InvoiceStatus, status)
-        if status_enum:
+        if status_enum == models.InvoiceStatus.OVERDUE:
+            # "overdue" is computed: unpaid + past due date (not a stored value)
+            q = q.where(
+                models.Invoice.due_date < date.today(),
+                models.Invoice.status.in_([
+                    models.InvoiceStatus.PENDING, models.InvoiceStatus.PARTIAL
+                ]),
+            )
+        elif status_enum:
             q = q.where(models.Invoice.status == status_enum)
     q = q.offset(skip).limit(limit).order_by(desc(models.Invoice.created_at))
     result = await db.execute(q)
-    return result.scalars().all()
+    invoices = result.scalars().all()
+    today = date.today()
+    for inv in invoices:
+        _apply_overdue(inv, today)
+    return invoices
 
 
 async def get_invoice(db: AsyncSession, invoice_id: int):
@@ -487,18 +508,27 @@ async def update_invoice_status(db: AsyncSession, invoice_id: int, status: schem
 
 
 async def delete_invoice(db: AsyncSession, invoice_id: int):
-    """Delete an invoice (cascade deletes line items and payments)."""
+    """Delete an invoice — blocked while it has non-voided payments."""
     invoice = await get_invoice(db, invoice_id)
-    if invoice:
-        await db.delete(invoice)
-        await db.flush()
+    if not invoice:
+        return None
+    active_payments = [p for p in invoice.payments if not p.is_voided]
+    if active_payments:
+        raise ValueError(
+            "Cannot delete an invoice with payments — void the payments first"
+        )
+    await db.delete(invoice)
+    await db.flush()
     return invoice
 
 
 # ─── Payments ─────────────────────────────────────────────────────────────────
 
-async def get_payments(db: AsyncSession, invoice_id: int = None, skip: int = 0, limit: int = 50):
+async def get_payments(db: AsyncSession, invoice_id: int = None, skip: int = 0, limit: int = 50,
+                       include_voided: bool = False):
     q = select(models.Payment)
+    if not include_voided:
+        q = q.where(models.Payment.is_voided.is_(False))
     if invoice_id:
         q = q.where(models.Payment.invoice_id == invoice_id)
     q = q.offset(skip).limit(limit).order_by(desc(models.Payment.payment_date))
@@ -542,19 +572,20 @@ async def create_payment(db: AsyncSession, data: schemas.PaymentCreate):
 
 
 async def delete_payment(db: AsyncSession, payment_id: int):
-    """Void/delete a payment and recalculate invoice status."""
+    """Void a payment (soft delete via is_voided) and recalculate invoice status."""
     q = select(models.Payment).where(models.Payment.id == payment_id)
     result = await db.execute(q)
     payment = result.scalar_one_or_none()
     if not payment:
         return None
+    if payment.is_voided:
+        return payment
 
-    invoice_id = payment.invoice_id
-    await db.delete(payment)
+    payment.is_voided = True
     await db.flush()
 
     # Recalculate invoice status after voiding payment
-    invoice = await get_invoice(db, invoice_id)
+    invoice = await get_invoice(db, payment.invoice_id)
     if invoice:
         fin = attach_invoice_financials(invoice)
         total = Decimal(str(fin["total_amount"]))
@@ -586,9 +617,15 @@ async def get_dashboard_stats(db: AsyncSession) -> schemas.DashboardStats:
         )
     )).scalar()
     overdue_invoices = (await db.execute(
-        select(func.count(models.Invoice.id)).where(
-            models.Invoice.status == models.InvoiceStatus.OVERDUE
-        )
+        select(func.count(models.Invoice.id)).where(or_(
+            models.Invoice.status == models.InvoiceStatus.OVERDUE,
+            and_(
+                models.Invoice.due_date < date.today(),
+                models.Invoice.status.in_([
+                    models.InvoiceStatus.PENDING, models.InvoiceStatus.PARTIAL
+                ]),
+            ),
+        ))
     )).scalar()
 
     collected_q = select(func.coalesce(func.sum(models.Payment.amount_paid), 0)).join(

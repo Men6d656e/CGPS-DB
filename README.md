@@ -181,7 +181,7 @@ See [SPEC/SPEC2.md](SPEC/SPEC2.md) for the detailed plan derived from the deep c
 | **Phase 1** | Critical Runtime Fixes | ✅ Complete |
 | **Phase 2** | Restore Broken Testing Infrastructure | ✅ Complete |
 | **Phase 3** | Security Hardening | ✅ Complete |
-| **Phase 4** | Data Integrity & Indexes | ⏳ Pending |
+| **Phase 4** | Data Integrity & Indexes | ✅ Complete |
 | **Phase 5** | Working Dark / Light Theme | ⏳ Pending |
 | **Phase 6** | Code Quality & Performance | ⏳ Pending |
 

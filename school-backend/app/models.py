@@ -12,7 +12,7 @@ import enum
 from datetime import date, datetime
 from decimal import Decimal
 from sqlalchemy import (
-    Integer, String, Text, Date, DateTime, Numeric,
+    Integer, String, Text, Date, DateTime, Numeric, Boolean,
     ForeignKey, Enum as SAEnum, UniqueConstraint, func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, relationship as orm_relationship
@@ -264,6 +264,7 @@ class Payment(Base):
     amount_paid: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     payment_date: Mapped[date] = mapped_column(Date, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_voided: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     invoice: Mapped["Invoice"] = relationship(back_populates="payments")
