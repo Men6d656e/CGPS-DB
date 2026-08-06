@@ -97,7 +97,8 @@ behzad_stuck/
 │   └── index.html
 │
 ├── SPEC/                            # Specifications
-│   └── SPEC1.md                     # Phase improvement plan
+│   ├── SPEC1.md                     # Phase improvement plan (original 6 phases)
+│   └── SPEC2.md                     # Reliability & quality plan (deep review fixes)
 │
 ├── docs/                            # Documentation
 │   ├── phase1-security-fixes.md     # Phase 1: Security & core fixes
@@ -110,7 +111,8 @@ behzad_stuck/
 │
 ├── Makefile                         # Development automation script
 ├── README.md                        # This file
-├── PROJECT_OVERVIEW2.md             # Comprehensive codebase analysis
+├── PROJECT_OVERVIEW2.md             # Codebase analysis (SPEC1 source)
+├── project-overview3.md             # Deep codebase review (SPEC2 source)
 └── ProjectOverview.md               # Original project overview
 ```
 
@@ -149,12 +151,12 @@ See [SPEC/SPEC1.md](SPEC/SPEC1.md) for the detailed phased improvement plan.
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| **Phase 1** | Critical Security & Core Fixes | ⏳ Pending |
-| **Phase 2** | User Management System | ⏳ Pending |
-| **Phase 3** | Dashboard Improvements | ⏳ Pending |
-| **Phase 4** | Frontend Polish & Error Handling | ⏳ Pending |
-| **Phase 5** | Testing & Documentation | ⏳ Pending |
-| **Phase 6** | Advanced Features | ⏳ Pending |
+| **Phase 1** | Critical Security & Core Fixes | ✅ Complete |
+| **Phase 2** | User Management System | ✅ Complete |
+| **Phase 3** | Dashboard Improvements | ✅ Complete |
+| **Phase 4** | Frontend Polish & Error Handling | ✅ Complete |
+| **Phase 5** | Testing & Documentation | ✅ Complete |
+| **Phase 6** | Advanced Features | ✅ Complete |
 
 ### Phase Workflow
 
@@ -165,6 +167,23 @@ Each phase follows this workflow:
 4. **Update README** — Add phase summary to root README.md
 5. **Commit** — Stage and commit with descriptive message
 6. **Push** — Push to `my-changes` branch
+
+---
+
+## 🔍 Reliability Plan (SPEC2)
+
+See [SPEC/SPEC2.md](SPEC/SPEC2.md) for the detailed plan derived from the deep codebase review ([project-overview3.md](project-overview3.md)). It fixes what SPEC1 left broken or incomplete: the Users page crash, dead dark-mode toggle, un-runnable test suites, enum case mismatch, and dead token revocation.
+
+### Current Phases
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **Phase 1** | Critical Runtime Fixes | ⏳ Pending |
+| **Phase 2** | Restore Broken Testing Infrastructure | ⏳ Pending |
+| **Phase 3** | Security Hardening | ⏳ Pending |
+| **Phase 4** | Data Integrity & Indexes | ⏳ Pending |
+| **Phase 5** | Working Dark / Light Theme | ⏳ Pending |
+| **Phase 6** | Code Quality & Performance | ⏳ Pending |
 
 ---
 
@@ -243,8 +262,10 @@ All endpoints are prefixed with `/api/v1`.
 
 ### Core Documentation
 - [PROJECT_OVERVIEW2.md](PROJECT_OVERVIEW2.md) — Comprehensive codebase analysis
+- [project-overview3.md](project-overview3.md) — Deep codebase review & reliability audit (SPEC2 source)
 - [ProjectOverview.md](ProjectOverview.md) — Original project overview
-- [SPEC/SPEC1.md](SPEC/SPEC1.md) — Phased improvement plan (6 phases)
+- [SPEC/SPEC1.md](SPEC/SPEC1.md) — Phased improvement plan (original 6 phases)
+- [SPEC/SPEC2.md](SPEC/SPEC2.md) — Reliability & quality plan (deep review fixes)
 
 ### Phase Documentation
 Each phase includes detailed implementation notes, testing results, and commit history:
