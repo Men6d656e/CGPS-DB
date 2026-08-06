@@ -242,12 +242,12 @@ export default function Students() {
         >
           {students.map(s => (
             <TableRow key={s.id}>
-              <TableCell className="font-medium text-slate-200">{s.first_name} {s.last_name}</TableCell>
+              <TableCell className="font-medium text-foreground">{s.first_name} {s.last_name}</TableCell>
               <TableCell>
-                <span className="font-mono text-xs bg-slate-800 px-2 py-1 rounded-lg">Class {s.current_class}</span>
+                <span className="font-mono text-xs bg-muted px-2 py-1 rounded-full">Class {s.current_class}</span>
               </TableCell>
-              <TableCell className="font-mono text-xs text-slate-400">{s.cnic_bform}</TableCell>
-              <TableCell className="text-slate-400">{s.admission_date}</TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">{s.cnic_bform}</TableCell>
+              <TableCell className="text-muted-foreground">{s.admission_date}</TableCell>
               <TableCell>
                 {isAdmin ? (
                   <Select value={s.status} onValueChange={(val) => handleStatusChange(s, val)}>
@@ -266,18 +266,18 @@ export default function Students() {
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(s)} title="View">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(s)} title="View" aria-label="View">
                     <Eye size={14} />
                   </Button>
                   {isAdmin && (
                     <>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openLink(s)} title="Link parent">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openLink(s)} title="Link parent" aria-label="Link parent">
                         <Link size={14} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(s); setEditForm({ first_name: s.first_name, last_name: s.last_name, current_class: s.current_class, status: s.status }); setEditOpen(true) }} title="Edit">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(s); setEditForm({ first_name: s.first_name, last_name: s.last_name, current_class: s.current_class, status: s.status }); setEditOpen(true) }} title="Edit" aria-label="Edit">
                         <Edit2 size={14} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(s)} title="Delete">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(s)} title="Delete" aria-label="Delete">
                         <Trash2 size={16} />
                       </Button>
                     </>
@@ -389,9 +389,9 @@ export default function Students() {
                 ['Admission Date', selected.admission_date],
                 ['Status', selected.status],
               ].map(([k, v]) => (
-                <div key={k} className="bg-slate-800/40 rounded-xl px-4 py-3">
-                  <p className="text-xs text-slate-500 mb-0.5">{k}</p>
-                  <p className="text-slate-200 font-medium capitalize">{v}</p>
+                <div key={k} className="bg-muted/40 rounded-md px-4 py-3">
+                  <p className="text-xs text-muted-foreground mb-0.5">{k}</p>
+                  <p className="text-foreground font-medium capitalize">{v}</p>
                 </div>
               ))}
             </div>
@@ -401,11 +401,11 @@ export default function Students() {
                 <p className="text-sm font-medium text-muted-foreground mb-2">Parents / Guardians ({detailParents.length})</p>
                 <div className="space-y-1.5">
                   {detailParents.map(p => (
-                    <div key={p.id} className="flex items-center gap-3 bg-slate-800/40 rounded-xl px-4 py-2.5">
-                      <UserCheck size={14} className="text-brand-400" />
+                    <div key={p.id} className="flex items-center gap-3 bg-muted/40 rounded-md px-4 py-2.5">
+                      <UserCheck size={14} className="text-accent-brand" />
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm text-slate-300 block truncate">{p.guardian_name}</span>
-                        <span className="text-xs text-slate-500">{p.relationship || 'Guardian'} · <Phone size={10} className="inline" /> {p.contact_no}</span>
+                        <span className="text-sm text-foreground block truncate">{p.guardian_name}</span>
+                        <span className="text-xs text-muted-foreground">{p.relationship || 'Guardian'} · <Phone size={10} className="inline" /> {p.contact_no}</span>
                       </div>
                       {isAdmin && (
                         <Button
@@ -432,8 +432,8 @@ export default function Students() {
                 </div>
               </div>
             ) : (
-              <div className="bg-slate-800/30 rounded-xl px-4 py-3">
-                <p className="text-xs text-slate-500">No parents linked yet</p>
+              <div className="bg-muted/30 rounded-md px-4 py-3">
+                <p className="text-xs text-muted-foreground">No parents linked yet</p>
               </div>
             )}
 
@@ -442,10 +442,10 @@ export default function Students() {
                 <p className="text-sm font-medium text-muted-foreground mb-2">Siblings ({siblings.length})</p>
                 <div className="space-y-1.5">
                   {siblings.map(sib => (
-                    <div key={sib.id} className="flex items-center gap-3 bg-slate-800/40 rounded-xl px-4 py-2.5">
-                      <Users size={14} className="text-brand-400" />
-                      <span className="text-sm text-slate-300">{sib.first_name} {sib.last_name}</span>
-                      <span className="text-xs text-slate-500 ml-auto">Class {sib.current_class}</span>
+                    <div key={sib.id} className="flex items-center gap-3 bg-muted/40 rounded-md px-4 py-2.5">
+                      <Users size={14} className="text-accent-brand" />
+                      <span className="text-sm text-foreground">{sib.first_name} {sib.last_name}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">Class {sib.current_class}</span>
                     </div>
                   ))}
                 </div>

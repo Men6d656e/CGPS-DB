@@ -9,7 +9,7 @@ import { Badge } from '../components/ui/badge'
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
     return (
-      <div className="bg-popover border rounded-xl px-4 py-3 text-sm shadow-xl">
+      <div className="bg-popover border rounded-lg px-4 py-3 text-sm shadow-xl">
         <p className="text-muted-foreground mb-1">{label}</p>
         <p className="text-foreground font-medium">PKR {Number(payload[0].value).toLocaleString()}</p>
       </div>
@@ -76,11 +76,11 @@ export default function Dashboard() {
 
       {/* Pending amount banner */}
       {Number(stats.total_pending_amount) > 0 && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
+        <Card className="border-warning/30 bg-warning/5">
           <CardContent className="px-5 py-4 flex items-center gap-4">
-            <TrendingUp size={20} className="text-amber-400 flex-shrink-0" />
+            <TrendingUp size={20} className="text-warning flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-amber-500 dark:text-amber-400">Outstanding Balance</p>
+              <p className="text-sm font-medium text-warning">Outstanding Balance</p>
               <p className="text-xs text-muted-foreground">
                 PKR {Number(stats.total_pending_amount).toLocaleString()} pending across all invoices
               </p>

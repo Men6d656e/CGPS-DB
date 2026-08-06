@@ -27,13 +27,13 @@ export default class ErrorBoundary extends Component {
       return (
         <div className="min-h-[400px] flex items-center justify-center p-8">
           <div className="text-center max-w-md">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 mb-5">
-              <AlertTriangle size={28} className="text-red-400" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-md bg-destructive/10 border border-destructive/20 mb-5">
+              <AlertTriangle size={28} className="text-destructive" />
             </div>
-            <h2 className="font-display text-xl font-semibold text-slate-200 mb-2">
+            <h2 className="font-display text-xl font-semibold text-foreground mb-2">
               Something went wrong
             </h2>
-            <p className="text-sm text-slate-400 mb-6">
+            <p className="text-sm text-muted-foreground mb-6">
               An unexpected error occurred. Please try again or contact support if the problem persists.
             </p>
             {import.meta.env.DEV && this.state.error && (

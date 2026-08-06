@@ -11,8 +11,8 @@ import { TableRow, TableCell } from '../components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const ROLE_OPTIONS = [
-  { value: 'staff', label: 'Staff', icon: ShieldOff, color: 'text-slate-400 bg-slate-800/60 border-slate-700/60' },
-  { value: 'admin', label: 'Admin', icon: Shield, color: 'text-brand-400 bg-brand-500/10 border-brand-500/20' },
+  { value: 'staff', label: 'Staff', icon: ShieldOff, color: 'text-muted-foreground bg-muted/60 border-border' },
+  { value: 'admin', label: 'Admin', icon: Shield, color: 'text-accent-brand bg-accent-brand/10 border-accent-brand/20' },
 ]
 
 export default function Users() {
@@ -109,11 +109,11 @@ export default function Users() {
     return (
       <div className="animate-fade-in">
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mb-5 border border-red-500/20">
-            <ShieldX size={28} className="text-red-400" />
+          <div className="w-16 h-16 rounded-md bg-destructive/10 flex items-center justify-center mb-5 border border-destructive/20">
+            <ShieldX size={28} className="text-destructive" />
           </div>
-          <p className="font-display text-lg font-semibold text-slate-200 mb-1">Access Denied</p>
-          <p className="text-sm text-slate-500 max-w-sm">
+          <p className="font-display text-lg font-semibold text-foreground mb-1">Access Denied</p>
+          <p className="text-sm text-muted-foreground max-w-sm">
             Only administrators can manage user accounts. If you need access, contact your system administrator.
           </p>
         </div>
@@ -160,10 +160,10 @@ export default function Users() {
             return (
               <TableRow key={u.id}>
                 <TableCell>
-                  <span className="font-medium text-slate-200">@{u.username}</span>
+                  <span className="font-medium text-foreground">@{u.username}</span>
                 </TableCell>
-                <TableCell className="text-slate-400">{u.full_name || '—'}</TableCell>
-                <TableCell className="text-slate-400 text-xs">{u.email}</TableCell>
+                <TableCell className="text-muted-foreground">{u.full_name || '—'}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">{u.email}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${roleConfig.color}`}>
@@ -186,7 +186,7 @@ export default function Users() {
                     {u.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-xs text-slate-500">
+                <TableCell className="text-xs text-muted-foreground">
                   {new Date(u.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </TableCell>
                 <TableCell>
@@ -256,8 +256,8 @@ export default function Users() {
       {/* Reset Password Modal */}
       <Modal open={resetPwdOpen} onClose={() => setResetPwdOpen(false)} title={`Reset Password — ${selectedUser?.username}`} maxWidth="max-w-sm">
         <div className="space-y-4">
-          <p className="text-sm text-slate-400">
-            Set a new password for <span className="text-slate-200 font-medium">@{selectedUser?.username}</span>
+          <p className="text-sm text-muted-foreground">
+            Set a new password for <span className="text-foreground font-medium">@{selectedUser?.username}</span>
           </p>
           <Field label="New Password">
             <Input type="password" value={resetPwdForm.new_password}

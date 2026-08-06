@@ -16,22 +16,22 @@ import {
   PaginationPrevious, PaginationNext,
 } from './ui/pagination'
 
-// Shared semantic badge styles (SPEC3 Phase 3)
+// Shared semantic badge styles (SPEC4 Phase 3 — token-based, theme-aware via CSS vars)
 export const STATUS_STYLES = {
-  active: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25',
-  paid: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25',
-  withdrawn: 'bg-slate-500/15 text-slate-500 dark:text-slate-400 border-slate-500/25',
-  inactive: 'bg-slate-500/15 text-slate-500 dark:text-slate-400 border-slate-500/25',
-  resigned: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25',
-  graduated: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/25',
-  pending: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/25',
-  partial: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/25',
-  overdue: 'bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/25',
+  active: 'bg-success/15 text-success border-success/25',
+  paid: 'bg-success/15 text-success border-success/25',
+  withdrawn: 'bg-muted/50 text-muted-foreground border-border',
+  inactive: 'bg-muted/50 text-muted-foreground border-border',
+  resigned: 'bg-warning/15 text-warning border-warning/25',
+  graduated: 'bg-info/15 text-info border-info/25',
+  pending: 'bg-warning/15 text-warning border-warning/25',
+  partial: 'bg-partial/15 text-partial border-partial/25',
+  overdue: 'bg-destructive/15 text-destructive border-destructive/25',
 }
 
 // ─── Loading Spinner ──────────────────────────────────────────────────────────
 export function Spinner({ size = 20, className = '' }) {
-  return <Loader2 size={size} className={`animate-spin text-brand-400 ${className}`} />
+  return <Loader2 size={size} className={`animate-spin text-accent-brand ${className}`} />
 }
 
 export function PageLoader() {
@@ -46,10 +46,10 @@ export function PageLoader() {
 export function EmptyState({ icon: Icon, title, description, action }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center border-t">
-      <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mb-4 border">
+      <div className="w-14 h-14 rounded-md bg-muted flex items-center justify-center mb-4 border">
         <Icon size={24} className="text-muted-foreground" />
       </div>
-      <p className="font-medium text-foreground mb-1">{title}</p>
+      <p className="font-display font-medium text-foreground mb-1">{title}</p>
       <p className="text-sm text-muted-foreground mb-5 max-w-xs">{description}</p>
       {action}
     </div>
@@ -86,7 +86,7 @@ export function ConfirmModal({ open, onClose, onConfirm, title, message, confirm
     <AlertDialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogTitle className="font-display">{title}</AlertDialogTitle>
           <AlertDialogDescription>{message}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -106,16 +106,16 @@ export function ConfirmModal({ open, onClose, onConfirm, title, message, confirm
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 export function StatCard({ label, value, icon: Icon, color = 'brand', trend }) {
   const iconColor = {
-    brand: 'bg-brand-500/15 text-brand-500 dark:text-brand-400',
-    emerald: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-    gold: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-    red: 'bg-red-500/15 text-red-600 dark:text-red-400',
+    brand: 'bg-accent-brand/15 text-accent-brand',
+    emerald: 'bg-success/15 text-success',
+    gold: 'bg-warning/15 text-warning',
+    red: 'bg-destructive/15 text-destructive',
   }
   return (
     <Card>
       <CardContent className="p-5">
         <div className="flex items-start justify-between mb-3">
-          <div className={`w-10 h-10 rounded-xl ${iconColor[color]} flex items-center justify-center`}>
+          <div className={`w-10 h-10 rounded-md ${iconColor[color]} flex items-center justify-center`}>
             <Icon size={20} />
           </div>
           {trend && <span className="text-xs text-muted-foreground">{trend}</span>}
@@ -163,13 +163,13 @@ export function SectionHeader({ title, description, action }) {
 // ─── Table Wrapper (shadcn Table) ──────────────────────────────────────────────
 export function Table({ headers, children, empty }) {
   return (
-    <div className="rounded-xl border bg-card text-card-foreground shadow overflow-hidden">
+    <div className="rounded-lg border bg-card text-card-foreground shadow overflow-hidden">
       <div className="overflow-x-auto">
         <STable>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               {headers.map((h) => (
-                <TableHead key={h} className="text-xs uppercase tracking-wider text-muted-foreground">
+                <TableHead key={h} className="font-display text-xs uppercase tracking-wider text-muted-foreground">
                   {h}
                 </TableHead>
               ))}

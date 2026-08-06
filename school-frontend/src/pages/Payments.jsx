@@ -111,11 +111,11 @@ export default function Payments() {
 
       {/* Total collected card */}
       {filtered.length > 0 && (
-        <Card className="border-emerald-500/30 bg-emerald-500/5">
+        <Card className="border-success/30 bg-success/5">
           <CardContent className="px-5 py-4 flex items-center gap-4">
-            <CreditCard size={20} className="text-emerald-400" />
+            <CreditCard size={20} className="text-success" />
             <div>
-              <p className="text-sm font-medium text-emerald-300">Total Collected</p>
+              <p className="text-sm font-medium text-success">Total Collected</p>
               <p className="text-xs text-muted-foreground">PKR {totalCollected.toLocaleString()} across {filtered.length} transactions</p>
             </div>
           </CardContent>
@@ -157,16 +157,16 @@ export default function Payments() {
         >
           {filtered.map(p => (
             <TableRow key={p.id}>
-              <TableCell className="font-mono text-xs text-slate-400">#{String(p.id).padStart(4, '0')}</TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">#{String(p.id).padStart(4, '0')}</TableCell>
               <TableCell className="font-mono text-xs">
-                <span className="bg-slate-800 px-2 py-1 rounded-lg">INV-{String(p.invoice_id).padStart(4, '0')}</span>
+                <span className="bg-muted px-2 py-1 rounded-full">INV-{String(p.invoice_id).padStart(4, '0')}</span>
               </TableCell>
-              <TableCell className="font-mono font-semibold text-emerald-400">
+              <TableCell className="font-mono font-semibold text-success">
                 PKR {Number(p.amount_paid).toLocaleString()}
               </TableCell>
-              <TableCell className="text-slate-300">{p.payment_date}</TableCell>
-              <TableCell className="text-slate-400 max-w-xs truncate">{p.notes || '—'}</TableCell>
-              <TableCell className="text-xs text-slate-500">
+              <TableCell className="text-foreground">{p.payment_date}</TableCell>
+              <TableCell className="text-muted-foreground max-w-xs truncate">{p.notes || '—'}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">
                 {new Date(p.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
               </TableCell>
               <TableCell>
@@ -225,12 +225,12 @@ export default function Payments() {
           {selectedInvoice && (
             <div className="grid grid-cols-3 gap-2">
               {[
-                { label: 'Total', value: selectedInvoice.total_amount, color: 'text-slate-200' },
-                { label: 'Paid', value: selectedInvoice.amount_paid, color: 'text-emerald-400' },
-                { label: 'Balance', value: selectedInvoice.balance_due, color: 'text-amber-400' },
+                { label: 'Total', value: selectedInvoice.total_amount, color: 'text-foreground' },
+                { label: 'Paid', value: selectedInvoice.amount_paid, color: 'text-success' },
+                { label: 'Balance', value: selectedInvoice.balance_due, color: 'text-warning' },
               ].map(({ label, value, color }) => (
-                <div key={label} className="bg-slate-800/50 rounded-xl px-3 py-2 text-center">
-                  <p className="text-xs text-slate-500">{label}</p>
+                <div key={label} className="bg-muted/50 rounded-md px-3 py-2 text-center">
+                  <p className="text-xs text-muted-foreground">{label}</p>
                   <p className={`text-sm font-mono font-medium ${color}`}>PKR {Number(value || 0).toLocaleString()}</p>
                 </div>
               ))}

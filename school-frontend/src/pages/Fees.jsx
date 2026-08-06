@@ -119,28 +119,36 @@ export default function Fees() {
           {fees.map(fee => (
             <Card key={fee.id} className="overflow-hidden">
               <div
-                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-800/30 transition-colors"
+                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-muted/30 transition-colors"
                 onClick={() => setExpanded(expanded === fee.id ? null : fee.id)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center">
-                    <DollarSign size={16} className="text-brand-400" />
+                  <div className="w-10 h-10 rounded-md bg-accent-brand/10 border border-accent-brand/20 flex items-center justify-center">
+                    <DollarSign size={16} className="text-accent-brand" />
                   </div>
                   <div>
-                    <p className="font-medium text-slate-200">{fee.fee_name}</p>
-                    {fee.description && <p className="text-xs text-slate-500 mt-0.5">{fee.description}</p>}
+                    <p className="font-medium text-foreground">{fee.fee_name}</p>
+                    {fee.description && <p className="text-xs text-muted-foreground mt-0.5">{fee.description}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="font-mono font-medium text-slate-200">PKR {Number(fee.default_amount).toLocaleString()}</p>
-                    <p className="text-xs text-slate-500">default / month</p>
+                    <p className="font-mono font-medium text-foreground">PKR {Number(fee.default_amount).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">default / month</p>
                   </div>
                   {isAdmin ? (
                     <Badge
                       variant="outline"
-                      className={`${fee.is_active ? STATUS_STYLES.active : STATUS_STYLES.inactive} cursor-pointer`}
+                      className={`${fee.is_active ? STATUS_STYLES.active : STATUS_STYLES.inactive} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background`}
                       title="Click to toggle status"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.currentTarget.click();
+                        }
+                      }}
                       onClick={async (e) => {
                         e.stopPropagation();
                         try {
@@ -181,16 +189,16 @@ export default function Fees() {
                         </Button>
                       </>
                     )}
-                    {expanded === fee.id ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
+                    {expanded === fee.id ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
                   </div>
                 </div>
               </div>
 
               {/* Class Overrides Panel */}
               {expanded === fee.id && (
-                <div className="border-t border-slate-800/60 bg-slate-900/50 px-5 py-4">
+                <div className="border-t border-border bg-muted/50 px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Class-specific Overrides</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Class-specific Overrides</p>
                     {isAdmin && (
                       <Button
                         variant="outline"
@@ -203,13 +211,13 @@ export default function Fees() {
                     )}
                   </div>
                   {fee.class_overrides.length === 0 ? (
-                    <p className="text-sm text-slate-500">No overrides — all classes use default amount</p>
+                    <p className="text-sm text-muted-foreground">No overrides — all classes use default amount</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {fee.class_overrides.map(ov => (
-                        <div key={ov.id} className="flex items-center gap-2 bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2">
-                          <span className="text-xs text-slate-400">Class {ov.class_name}</span>
-                          <span className="text-xs font-mono text-slate-200 font-medium">PKR {Number(ov.amount).toLocaleString()}</span>
+                        <div key={ov.id} className="flex items-center gap-2 bg-muted/60 border border-border rounded-md px-3 py-2">
+                          <span className="text-xs text-muted-foreground">Class {ov.class_name}</span>
+                          <span className="text-xs font-mono text-foreground font-medium">PKR {Number(ov.amount).toLocaleString()}</span>
                         </div>
                       ))}
                     </div>

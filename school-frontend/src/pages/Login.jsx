@@ -48,15 +48,15 @@ export default function Login() {
 
       {/* Decorative background gradients */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gold-400/5 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-accent-brand/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-warning/5 rounded-full blur-3xl" />
       </div>
 
       {/* Login card */}
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 shadow-xl shadow-brand-500/30 mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-md bg-gradient-to-br from-accent-brand to-accent-brand-strong shadow-xl shadow-accent-brand/30 mb-4">
             <GraduationCap size={32} className="text-white" />
           </div>
           <h1 className="font-display text-2xl font-semibold text-foreground">School Management</h1>

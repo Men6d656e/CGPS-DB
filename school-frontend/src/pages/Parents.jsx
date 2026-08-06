@@ -161,15 +161,15 @@ export default function Parents() {
         >
           {parents.map(p => (
             <TableRow key={p.id}>
-              <TableCell className="font-medium text-slate-200">{p.guardian_name}</TableCell>
-              <TableCell className="font-mono text-xs text-slate-400">{p.cnic}</TableCell>
+              <TableCell className="font-medium text-foreground">{p.guardian_name}</TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">{p.cnic}</TableCell>
               <TableCell>
-                <a href={`tel:${p.contact_no}`} className="flex items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors">
+                <a href={`tel:${p.contact_no}`} className="flex items-center gap-1.5 text-accent-brand hover:text-accent-brand/80 transition-colors">
                   <Phone size={13} />{p.contact_no}
                 </a>
               </TableCell>
-              <TableCell className="text-slate-400">{p.whatsapp_no || '—'}</TableCell>
-              <TableCell className="text-slate-400 max-w-xs truncate">{p.address || '—'}</TableCell>
+              <TableCell className="text-muted-foreground">{p.whatsapp_no || '—'}</TableCell>
+              <TableCell className="text-muted-foreground max-w-xs truncate">{p.address || '—'}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
                   <Button
@@ -294,9 +294,9 @@ export default function Parents() {
                 ['WhatsApp', selected.whatsapp_no || '—'],
                 ['Address', selected.address || '—'],
               ].map(([k, v]) => (
-                <div key={k} className="bg-slate-800/40 rounded-xl px-4 py-3">
-                  <p className="text-xs text-slate-500 mb-0.5">{k}</p>
-                  <p className="text-slate-200 font-medium capitalize">{v}</p>
+                <div key={k} className="bg-muted/40 rounded-md px-4 py-3">
+                  <p className="text-xs text-muted-foreground mb-0.5">{k}</p>
+                  <p className="text-foreground font-medium capitalize">{v}</p>
                 </div>
               ))}
             </div>
@@ -306,15 +306,15 @@ export default function Parents() {
               {linkedStudents.length > 0 ? (
                 <div className="space-y-1.5">
                   {linkedStudents.map(s => (
-                    <div key={s.id} className="flex items-center gap-3 bg-slate-800/40 rounded-xl px-4 py-2.5">
-                      <GraduationCap size={14} className="text-brand-400" />
-                      <span className="text-sm text-slate-300">{s.first_name} {s.last_name}</span>
-                      <span className="text-xs text-slate-500 ml-auto">Class {s.current_class}</span>
+                    <div key={s.id} className="flex items-center gap-3 bg-muted/40 rounded-md px-4 py-2.5">
+                      <GraduationCap size={14} className="text-accent-brand" />
+                      <span className="text-sm text-foreground">{s.first_name} {s.last_name}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">Class {s.current_class}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-500">No students linked to this guardian</p>
+                <p className="text-sm text-muted-foreground">No students linked to this guardian</p>
               )}
             </div>
           </div>

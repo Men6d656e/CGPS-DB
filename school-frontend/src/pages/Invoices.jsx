@@ -137,20 +137,24 @@ export default function Invoices() {
       <html>
       <head>
         <title>Invoice #${String(invoice.id).padStart(4, '0')}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
         <style>
-          body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
-          .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-          .school-name { font-size: 24px; font-weight: bold; }
-          .invoice-title { font-size: 20px; color: #666; }
+          body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #1f2937; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #374151; padding-bottom: 20px; }
+          .school-name { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; color: #111827; }
+          .invoice-title { font-family: 'Playfair Display', serif; font-size: 20px; color: #4b5563; }
           .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-          .info-box { background: #f5f5f5; padding: 15px; border-radius: 8px; }
-          .info-label { font-size: 12px; color: #666; margin-bottom: 5px; }
-          .info-value { font-size: 16px; font-weight: bold; }
+          .info-box { background: #f3f4f6; padding: 15px; border-radius: 8px; }
+          .info-label { font-size: 12px; color: #6b7280; margin-bottom: 5px; }
+          .info-value { font-size: 16px; font-weight: 600; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-          th { background: #f5f5f5; font-weight: bold; }
-          .total-row { font-weight: bold; border-top: 2px solid #333; }
-          .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; }
+          th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+          th { background: #f3f4f6; font-weight: 600; }
+          th.num, td.num { text-align: right; font-family: 'JetBrains Mono', monospace; }
+          .total-row { font-family: 'JetBrains Mono', monospace; font-weight: 700; border-top: 2px solid #374151; }
+          .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
           @media print { body { padding: 20px; } }
         </style>
       </head>
@@ -186,27 +190,27 @@ export default function Invoices() {
           <thead>
             <tr>
               <th>Fee Type</th>
-              <th style="text-align: right;">Amount (PKR)</th>
+              <th class="num">Amount (PKR)</th>
             </tr>
           </thead>
           <tbody>
             ${(invoice.line_items || []).map(li => `
               <tr>
                 <td>${li.fee_type?.fee_name || `Fee #${li.fee_type_id}`}</td>
-                <td style="text-align: right;">${Number(li.amount).toLocaleString()}</td>
+                <td class="num">${Number(li.amount).toLocaleString()}</td>
               </tr>
             `).join('')}
             <tr class="total-row">
               <td>Total</td>
-              <td style="text-align: right;">${Number(invoice.total_amount || 0).toLocaleString()}</td>
+              <td class="num">${Number(invoice.total_amount || 0).toLocaleString()}</td>
             </tr>
             <tr>
               <td>Paid</td>
-              <td style="text-align: right; color: green;">${Number(invoice.amount_paid || 0).toLocaleString()}</td>
+              <td class="num" style="color: #059669;">${Number(invoice.amount_paid || 0).toLocaleString()}</td>
             </tr>
             <tr class="total-row">
               <td>Balance Due</td>
-              <td style="text-align: right; color: orange;">${Number(invoice.balance_due || 0).toLocaleString()}</td>
+              <td class="num" style="color: #d97706;">${Number(invoice.balance_due || 0).toLocaleString()}</td>
             </tr>
           </tbody>
         </table>
@@ -248,9 +252,9 @@ export default function Invoices() {
       {invoices.length > 0 && (
         <div className="grid grid-cols-3 gap-4 mb-5">
           {[
-            { label: 'Total Billed', value: grandTotal, color: 'text-slate-200' },
-            { label: 'Total Collected', value: grandPaid, color: 'text-emerald-400' },
-            { label: 'Outstanding', value: grandBalance, color: 'text-amber-400' },
+            { label: 'Total Billed', value: grandTotal, color: 'text-foreground' },
+            { label: 'Total Collected', value: grandPaid, color: 'text-success' },
+            { label: 'Outstanding', value: grandBalance, color: 'text-warning' },
           ].map(({ label, value, color }) => (
             <Card key={label}>
               <CardContent className="px-4 py-3">
@@ -299,22 +303,22 @@ export default function Invoices() {
         >
           {invoices.map(inv => (
             <TableRow key={inv.id}>
-              <TableCell className="font-mono text-xs text-slate-400">#{String(inv.id).padStart(4, '0')}</TableCell>
-              <TableCell className="text-slate-200">
+              <TableCell className="font-mono text-xs text-muted-foreground">#{String(inv.id).padStart(4, '0')}</TableCell>
+              <TableCell className="text-foreground">
                 {inv.student ? `${inv.student.first_name} ${inv.student.last_name}` : `Student #${inv.student_id}`}
               </TableCell>
               <TableCell className="font-mono text-xs">{inv.billing_month}</TableCell>
               <TableCell className="font-mono text-sm">PKR {totalForInvoice(inv).toLocaleString()}</TableCell>
-              <TableCell className="font-mono text-sm text-emerald-400">PKR {paidForInvoice(inv).toLocaleString()}</TableCell>
-              <TableCell className="font-mono text-sm text-amber-400">PKR {balanceForInvoice(inv).toLocaleString()}</TableCell>
-              <TableCell className="text-slate-400 text-xs">{inv.due_date}</TableCell>
+              <TableCell className="font-mono text-sm text-success">PKR {paidForInvoice(inv).toLocaleString()}</TableCell>
+              <TableCell className="font-mono text-sm text-warning">PKR {balanceForInvoice(inv).toLocaleString()}</TableCell>
+              <TableCell className="text-muted-foreground text-xs">{inv.due_date}</TableCell>
               <TableCell><StatusBadge status={inv.status} /></TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(inv); setDetailOpen(true) }} title="View">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(inv); setDetailOpen(true) }} title="View" aria-label="View">
                     <Eye size={14} />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrint(inv)} title="Print">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrint(inv)} title="Print" aria-label="Print">
                     <Printer size={14} />
                   </Button>
                   {isAdmin && inv.status !== 'paid' && (
@@ -328,7 +332,7 @@ export default function Invoices() {
                     </Button>
                   )}
                   {isAdmin && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(inv)} title="Delete">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(inv)} title="Delete" aria-label="Delete">
                       <Trash2 size={16} />
                     </Button>
                   )}
@@ -388,7 +392,7 @@ export default function Invoices() {
               {form.line_items.map((item, i) => {
                 const ft = feeTypes.find(f => f.id === item.fee_type_id)
                 return (
-                  <div key={i} className="flex items-center gap-3 bg-slate-800/50 rounded-xl px-4 py-2.5">
+                  <div key={i} className="flex items-center gap-3 bg-muted/50 rounded-md px-4 py-2.5">
                     <Switch
                       checked={item.enabled}
                       onCheckedChange={(checked) => {
@@ -397,8 +401,8 @@ export default function Invoices() {
                         setForm({ ...form, line_items: items })
                       }}
                     />
-                    <span className="text-sm text-slate-300 flex-1">{ft?.fee_name}</span>
-                    <span className="text-xs text-slate-500">PKR</span>
+                    <span className="text-sm text-foreground flex-1">{ft?.fee_name}</span>
+                    <span className="text-xs text-muted-foreground">PKR</span>
                     <Input
                       type="number"
                       className="w-24"
@@ -413,9 +417,9 @@ export default function Invoices() {
                 )
               })}
             </div>
-            <div className="flex justify-between items-center mt-3 px-4 py-2 bg-slate-800/30 rounded-xl">
-              <span className="text-sm text-slate-400">Total</span>
-              <span className="font-mono font-semibold text-slate-200">
+            <div className="flex justify-between items-center mt-3 px-4 py-2 bg-muted/30 rounded-md">
+              <span className="text-sm text-muted-foreground">Total</span>
+              <span className="font-mono font-semibold text-foreground">
                 PKR {form.line_items.filter(i => i.enabled).reduce((a, i) => a + (parseFloat(i.amount) || 0), 0).toLocaleString()}
               </span>
             </div>
@@ -440,9 +444,9 @@ export default function Invoices() {
                 ['Due Date', selected.due_date],
                 ['Status', selected.status],
               ].map(([k, v]) => (
-                <div key={k} className="bg-slate-800/40 rounded-xl px-4 py-3">
-                  <p className="text-xs text-slate-500 mb-0.5">{k}</p>
-                  <p className="text-slate-200 font-medium capitalize">{v}</p>
+                <div key={k} className="bg-muted/40 rounded-md px-4 py-3">
+                  <p className="text-xs text-muted-foreground mb-0.5">{k}</p>
+                  <p className="text-foreground font-medium capitalize">{v}</p>
                 </div>
               ))}
             </div>
@@ -452,20 +456,20 @@ export default function Invoices() {
               <p className="text-sm font-medium text-muted-foreground mb-2">Fee Breakdown</p>
               <div className="space-y-1.5">
                 {selected.line_items?.map(li => (
-                  <div key={li.id} className="flex justify-between items-center py-2 border-b border-slate-800/60 last:border-0">
-                    <span className="text-sm text-slate-400">{li.fee_type?.fee_name || `Fee #${li.fee_type_id}`}</span>
-                    <span className="font-mono text-sm text-slate-200">PKR {Number(li.amount).toLocaleString()}</span>
+                  <div key={li.id} className="flex justify-between items-center py-2 border-b border-border last:border-0">
+                    <span className="text-sm text-muted-foreground">{li.fee_type?.fee_name || `Fee #${li.fee_type_id}`}</span>
+                    <span className="font-mono text-sm text-foreground">PKR {Number(li.amount).toLocaleString()}</span>
                   </div>
                 ))}
                 <div className="flex justify-between items-center pt-2 font-semibold">
-                  <span className="text-sm text-slate-300">Total</span>
-                  <span className="font-mono text-slate-100">PKR {Number(selected.total_amount || 0).toLocaleString()}</span>
+                  <span className="text-sm text-foreground">Total</span>
+                  <span className="font-mono text-foreground">PKR {Number(selected.total_amount || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center text-emerald-400">
+                <div className="flex justify-between items-center text-success">
                   <span className="text-sm">Paid</span>
                   <span className="font-mono text-sm">PKR {Number(selected.amount_paid || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center text-amber-400">
+                <div className="flex justify-between items-center text-warning">
                   <span className="text-sm font-semibold">Balance</span>
                   <span className="font-mono font-semibold">PKR {Number(selected.balance_due || 0).toLocaleString()}</span>
                 </div>

@@ -74,7 +74,7 @@ export default function App() {
       `}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/30">
+          <div className="w-9 h-9 rounded-md bg-gradient-to-br from-accent-brand to-accent-brand-strong flex items-center justify-center shadow-lg shadow-accent-brand/30">
             <GraduationCap size={20} className="text-white" />
           </div>
           <div>
@@ -86,6 +86,7 @@ export default function App() {
             size="icon"
             onClick={() => setSidebarOpen(false)}
             className="ml-auto lg:hidden h-8 w-8 text-muted-foreground"
+            aria-label="Close menu"
           >
             <X size={18} />
           </Button>
@@ -104,6 +105,7 @@ export default function App() {
               className={({ isActive }) => `
                 flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
                 transition-colors duration-150 group
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
                 ${isActive
                   ? 'bg-accent text-accent-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -120,13 +122,13 @@ export default function App() {
         <div className="px-4 py-4 space-y-3">
           <Separator />
           <div className="flex items-center gap-3 px-2 pt-2">
-            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
               <UserIcon size={15} className="text-muted-foreground" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-foreground truncate">{user?.full_name || user?.username}</p>
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-              <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+              <span className={`inline-flex items-center gap-1 mt-1 text-xs font-medium px-1.5 py-0.5 rounded-full ${
                 user?.role === 'admin'
                   ? 'text-foreground bg-accent'
                   : 'text-muted-foreground bg-muted'
@@ -164,6 +166,7 @@ export default function App() {
             size="icon"
             onClick={() => setSidebarOpen(true)}
             className="lg:hidden h-9 w-9 text-muted-foreground"
+            aria-label="Open menu"
           >
             <Menu size={20} />
           </Button>
@@ -178,7 +181,7 @@ export default function App() {
           <div className="flex-1" />
           <ThemeToggle />
           <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="w-1.5 h-1.5 rounded-full bg-success" />
             {user?.username}
           </div>
         </header>

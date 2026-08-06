@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Badge } from '../components/ui/badge'
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '../components/ui/dialog'
-import { StatusBadge } from '../components/UI'
+import { StatusBadge, STATUS_STYLES } from '../components/UI'
 
 describe('shadcn Badge (SPEC3)', () => {
   it('renders children with the outline variant class', () => {
@@ -15,7 +15,15 @@ describe('shadcn Badge (SPEC3)', () => {
     const { container } = render(<StatusBadge status="overdue" />)
     expect(screen.getByText('overdue')).toBeInTheDocument()
     // overdue → destructive-ish red styling
-    expect(container.querySelector('div').className).toContain('bg-red-500/15')
+    expect(container.querySelector('div').className).toContain('bg-destructive/15')
+  })
+
+  it('STATUS_STYLES use semantic tokens only (no raw palette) (SPEC4)', () => {
+    const raw =
+      /\b(?:text|bg|border)-(?:slate|brand|gold|emerald|amber|sky|orange|red|gray|green|blue)-[0-9]/
+    Object.values(STATUS_STYLES).forEach((classes) => {
+      expect(raw.test(classes)).toBe(false)
+    })
   })
 })
 

@@ -188,37 +188,37 @@ export default function Teachers() {
         >
           {teachers.map(t => (
             <TableRow key={t.id}>
-              <TableCell className="font-medium text-slate-200">{t.first_name} {t.last_name}</TableCell>
-              <TableCell className="text-slate-400">
+              <TableCell className="font-medium text-foreground">{t.first_name} {t.last_name}</TableCell>
+              <TableCell className="text-muted-foreground">
                 {t.subject ? (
                   <span className="inline-flex items-center gap-1.5 text-xs">
-                    <Briefcase size={12} className="text-brand-400" />
+                    <Briefcase size={12} className="text-accent-brand" />
                     {t.subject}
                   </span>
                 ) : (
-                  <span className="text-slate-600">—</span>
+                  <span className="text-muted-foreground">—</span>
                 )}
               </TableCell>
               <TableCell>
-                <a href={`tel:${t.phone}`} className="flex items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors">
+                <a href={`tel:${t.phone}`} className="flex items-center gap-1.5 text-accent-brand hover:text-accent-brand/80 transition-colors">
                   <Phone size={13} />{t.phone}
                 </a>
               </TableCell>
-              <TableCell className="text-slate-400 text-xs max-w-[140px] truncate">
+              <TableCell className="text-muted-foreground text-xs max-w-[140px] truncate">
                 {t.qualification ? (
                   <span className="inline-flex items-center gap-1">
-                    <GraduationCap size={12} className="text-slate-500" />
+                    <GraduationCap size={12} className="text-muted-foreground" />
                     {t.qualification}
                   </span>
                 ) : '—'}
               </TableCell>
-              <TableCell className="text-slate-400 text-xs">{t.hire_date}</TableCell>
+              <TableCell className="text-muted-foreground text-xs">{t.hire_date}</TableCell>
               <TableCell>
                 <Badge variant="outline" className={STATUS_STYLES[t.status] || STATUS_STYLES.active}>{t.status}</Badge>
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(t); setDetailOpen(true) }} title="View">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(t); setDetailOpen(true) }} title="View" aria-label="View">
                     <Eye size={14} />
                   </Button>
                   {isAdmin && (
@@ -232,7 +232,7 @@ export default function Teachers() {
                       }); setEditOpen(true) }} title="Edit">
                         <Edit2 size={14} />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(t)} title="Delete">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(t)} title="Delete" aria-label="Delete">
                         <Trash2 size={16} />
                       </Button>
                     </>
@@ -368,9 +368,9 @@ export default function Teachers() {
               ['Status', selected.status],
               ['Address', selected.address || '—'],
             ].map(([k, v]) => (
-              <div key={k} className={`${k === 'Address' ? 'col-span-2' : ''} bg-slate-800/40 rounded-xl px-4 py-3`}>
-                <p className="text-xs text-slate-500 mb-0.5">{k}</p>
-                <p className="text-slate-200 font-medium capitalize">{v}</p>
+              <div key={k} className={`${k === 'Address' ? 'col-span-2' : ''} bg-muted/40 rounded-md px-4 py-3`}>
+                <p className="text-xs text-muted-foreground mb-0.5">{k}</p>
+                <p className="text-foreground font-medium capitalize">{v}</p>
               </div>
             ))}
           </div>
