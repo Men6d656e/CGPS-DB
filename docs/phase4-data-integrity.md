@@ -89,10 +89,7 @@ cd school-frontend && npx vite build   # → build OK
 ```
 
 ### Migration
-> ⚠️ **Not auto-run.** `alembic upgrade head` touches the live Neon database and must be applied by you:
-> ```bash
-> cd school-backend && .venv/bin/python -m alembic upgrade head
-> ```
+✅ **Applied** on 2026-08-06 — `alembic upgrade head` run via the project venv. DB is now at revision `d1e2f3a4b5c6 (head)`. Verified: `payments.is_voided` column exists and all 5 indexes are present.
 
 ---
 

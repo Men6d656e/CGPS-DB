@@ -135,9 +135,9 @@ git push origin my-changes
 
 ## ⚠️ Notes
 
-1. **Deployment action required** — run `scripts/rehash_dedup_hashes.py` against the live DB after deploying (uniqueness checks use the new keyed hashes).
+1. ✅ **Re-hash script executed** on 2026-08-06 — `scripts/rehash_dedup_hashes.py` ran against the DB (2 students, 0 parents updated; stored hashes verified to match the new keyed HMAC scheme).
 2. **Access tokens** are not added to the revocation list on logout (they're short-lived, 30 min) — standard practice.
-3. Existing hashes remain valid *for lookup* only after the re-hash script runs; until then, newly created records use HMAC hashes and lookups for old records use old SHA-256 — **run the script to unify**.
+3. The create/search paths also match legacy SHA-256 hashes (`legacy_sha256_hash`) so lookups work even before the re-hash script runs — the script has now been run, so all hashes are unified on HMAC.
 
 ---
 
