@@ -116,6 +116,8 @@ behzad_stuck/
 │   ├── phase6-advanced-features.md  # Phase 6: Advanced features
 │   └── after-spec1-automation-script.md  # Makefile automation docs
 │
+├── .opencode/                       # OpenCode agency agents library (269 subagents)
+│   └── agents/                      # One Markdown definition per agent
 ├── Makefile                         # Development automation script
 ├── README.md                        # This file
 ├── PROJECT_OVERVIEW2.md             # Codebase analysis (SPEC1 source)
@@ -315,6 +317,7 @@ Each phase includes detailed implementation notes, testing results, and commit h
 
 ### Automation & Tools
 - [docs/after-spec1-automation-script.md](docs/after-spec1-automation-script.md) — Makefile automation script documentation
+- [docs/after-spec3-add-agency-agents-for-opencode.md](docs/after-spec3-add-agency-agents-for-opencode.md) — OpenCode agency agents library (269 subagents)
 
 ---
 
