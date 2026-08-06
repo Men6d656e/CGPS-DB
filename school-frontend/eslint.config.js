@@ -21,6 +21,8 @@ export default [
       ...reactHooks.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
+      // Treat identifiers referenced in JSX as used (fixes no-unused-vars false positives)
+      'react/jsx-uses-vars': 'error',
       // Data-loading pattern used throughout this app (load() inside useEffect)
       'react-hooks/set-state-in-effect': 'off',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],

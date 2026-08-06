@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
-import { Loader2, AlertCircle, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2, AlertCircle, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from './ui/button'
+import { Label } from './ui/label'
 
 // ─── Loading Spinner ──────────────────────────────────────────────────────────
 export function Spinner({ size = 20, className = '' }) {
@@ -60,9 +62,9 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' })
       <div className={`relative w-full ${maxWidth} card border-slate-700/60 shadow-2xl animate-slide-up`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/60">
           <h3 className="font-display font-semibold text-slate-100">{title}</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors" aria-label="Close dialog">
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-muted-foreground" aria-label="Close dialog">
             <X size={18} />
-          </button>
+          </Button>
         </div>
         <div className="px-6 py-5">{children}</div>
       </div>
@@ -77,13 +79,13 @@ export function ConfirmModal({ open, onClose, onConfirm, title, message, confirm
     <Modal open={open} onClose={onClose} title={title} maxWidth="max-w-sm">
       <p className="text-slate-400 text-sm mb-6">{message}</p>
       <div className="flex justify-end gap-3">
-        <button onClick={onClose} className="btn-secondary">Cancel</button>
-        <button 
-          onClick={() => { onConfirm(); onClose(); }} 
-          className={isDestructive ? "btn-danger" : "btn-primary"}
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button
+          variant={isDestructive ? "destructive" : "default"}
+          onClick={() => { onConfirm(); onClose(); }}
         >
           {confirmText}
-        </button>
+        </Button>
       </div>
     </Modal>
   )
@@ -117,28 +119,13 @@ export function StatCard({ label, value, icon: Icon, color = 'brand', trend }) {
   )
 }
 
-// ─── Form Field ───────────────────────────────────────────────────────────────
+// ─── Form Field (shadcn Label) ─────────────────────────────────────────────────
 export function Field({ label, error, children }) {
   return (
     <div>
-      {label && <label className="label">{label}</label>}
+      {label && <Label className="mb-1.5">{label}</Label>}
       {children}
-      {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
-    </div>
-  )
-}
-
-// ─── Select ───────────────────────────────────────────────────────────────────
-export function Select({ children, ...props }) {
-  return (
-    <div className="relative">
-      <select
-        {...props}
-        className="input appearance-none pr-9 cursor-pointer"
-      >
-        {children}
-      </select>
-      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
     </div>
   )
 }
@@ -208,20 +195,24 @@ export function Pagination({ skip, limit, totalItemsInCurrentPage, onNext, onPre
         Showing <span className="font-medium text-slate-300">{skip + 1}</span> to <span className="font-medium text-slate-300">{skip + totalItemsInCurrentPage}</span>
       </div>
       <div className="flex items-center gap-2">
-        <button 
-          onClick={onPrev} 
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onPrev}
           disabled={!hasPrev}
-          className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-50 flex items-center gap-1"
+          className="h-8 px-3 text-xs"
         >
           <ChevronLeft size={14} /> Prev
-        </button>
-        <button 
-          onClick={onNext} 
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onNext}
           disabled={!hasNext}
-          className="btn-secondary px-3 py-1.5 text-xs disabled:opacity-50 flex items-center gap-1"
+          className="h-8 px-3 text-xs"
         >
           Next <ChevronRight size={14} />
-        </button>
+        </Button>
       </div>
     </div>
   )

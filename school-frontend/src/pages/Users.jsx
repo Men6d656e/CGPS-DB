@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Plus, Users as UsersIcon, Shield, ShieldOff, Key, Search, ChevronDown, ShieldX } from 'lucide-react'
+import { Plus, Users as UsersIcon, Shield, ShieldOff, Key, Search, ShieldX } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { usersApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Table, Modal, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const ROLE_OPTIONS = [
   { value: 'staff', label: 'Staff', icon: ShieldOff, color: 'text-slate-400 bg-slate-800/60 border-slate-700/60' },
@@ -122,17 +125,17 @@ export default function Users() {
         title="User Management"
         description={`${users.length} registered users`}
         action={
-          <button onClick={() => setCreateOpen(true)} className="btn-primary">
+          <Button onClick={() => setCreateOpen(true)}>
             <Plus size={16} /> Add User
-          </button>
+          </Button>
         }
       />
 
       {/* Search */}
       <div className="relative mb-5 max-w-sm">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-        <input
-          className="input pl-9"
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="pl-9"
           placeholder="Search by username, email, role..."
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -145,7 +148,7 @@ export default function Users() {
           empty={filtered.length === 0 && (
             <EmptyState icon={UsersIcon} title="No users found"
               description="Add staff or admin accounts to the system"
-              action={<button onClick={() => setCreateOpen(true)} className="btn-primary"><Plus size={15} />Add User</button>}
+              action={<Button onClick={() => setCreateOpen(true)}><Plus size={15} />Add User</Button>}
             />
           )}
         >
@@ -165,13 +168,15 @@ export default function Users() {
                       <RoleIcon size={10} />
                       {roleConfig.label}
                     </span>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
                       onClick={() => handleRoleToggle(u)}
-                      className="p-1 hover:bg-slate-700 rounded-lg transition-colors text-slate-500 hover:text-slate-300"
                       title={`Switch to ${u.role === 'admin' ? 'staff' : 'admin'}`}
                     >
                       <ShieldOff size={12} />
-                    </button>
+                    </Button>
                   </div>
                 </td>
                 <td className="td">
@@ -184,13 +189,15 @@ export default function Users() {
                 </td>
                 <td className="td">
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
                       onClick={() => openResetPwd(u)}
-                      className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
                       title="Reset Password"
                     >
                       <Key size={14} />
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -203,43 +210,44 @@ export default function Users() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Add New User">
         <div className="space-y-4">
           <Field label="Username">
-            <input className="input" value={form.username}
+            <Input value={form.username}
               onChange={e => setForm({ ...form, username: e.target.value })}
               placeholder="johndoe" />
           </Field>
           <Field label="Email">
-            <input type="email" className="input" value={form.email}
+            <Input type="email" value={form.email}
               onChange={e => setForm({ ...form, email: e.target.value })}
               placeholder="john@school.edu" />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Full Name (Optional)">
-              <input className="input" value={form.full_name}
+              <Input value={form.full_name}
                 onChange={e => setForm({ ...form, full_name: e.target.value })}
                 placeholder="John Doe" />
             </Field>
             <Field label="Role">
-              <div className="relative">
-                <select className="input appearance-none pr-9 cursor-pointer" value={form.role}
-                  onChange={e => setForm({ ...form, role: e.target.value })}>
-                  <option value="staff">Staff</option>
-                  <option value="admin">Admin</option>
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-              </div>
+              <Select value={form.role} onValueChange={v => setForm({ ...form, role: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
           </div>
           <Field label="Password">
-            <input type="password" className="input" value={form.password}
+            <Input type="password" value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
               placeholder="Min. 8 characters" />
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleCreate} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={saving}>
             {saving ? <Spinner size={15} /> : <Plus size={15} />} Create User
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -250,21 +258,21 @@ export default function Users() {
             Set a new password for <span className="text-slate-200 font-medium">@{selectedUser?.username}</span>
           </p>
           <Field label="New Password">
-            <input type="password" className="input" value={resetPwdForm.new_password}
+            <Input type="password" value={resetPwdForm.new_password}
               onChange={e => setResetPwdForm({ ...resetPwdForm, new_password: e.target.value })}
               placeholder="Min. 8 characters" />
           </Field>
           <Field label="Confirm Password">
-            <input type="password" className="input" value={resetPwdForm.confirm_password}
+            <Input type="password" value={resetPwdForm.confirm_password}
               onChange={e => setResetPwdForm({ ...resetPwdForm, confirm_password: e.target.value })}
               placeholder="Repeat password" />
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setResetPwdOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleResetPwd} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setResetPwdOpen(false)}>Cancel</Button>
+          <Button onClick={handleResetPwd} disabled={saving}>
             {saving ? <Spinner size={15} /> : <Key size={15} />} Reset Password
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>

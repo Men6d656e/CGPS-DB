@@ -4,6 +4,10 @@ import toast from 'react-hot-toast'
 import { feesApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner, ConfirmModal } from '../components/UI'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Switch } from '../components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const CLASSES = ['Nursery','KG','1','2','3','4','5','6','7','8','9','10']
 
@@ -97,16 +101,17 @@ export default function Fees() {
         description="Define fee types and per-class overrides"
         action={
           isAdmin && (
-            <button onClick={() => setCreateOpen(true)} className="btn-primary">
+            <Button onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Add Fee Type
-            </button>
+            </Button>
           )
         }
       />
 
       {loading ? <PageLoader /> : fees.length === 0 ? (
         <EmptyState icon={DollarSign} title="No fee types yet"
-          description="Add tuition fee, library fee, etc."          action={isAdmin && <button onClick={() => setCreateOpen(true)} className="btn-primary"><Plus size={15} />Add Fee Type</button>}
+          description="Add tuition fee, library fee, etc."
+          action={isAdmin && <Button onClick={() => setCreateOpen(true)}><Plus size={15} />Add Fee Type</Button>}
         />) : (
         <div className="space-y-3">
           {fees.map(fee => (
@@ -154,19 +159,23 @@ export default function Fees() {
                   <div className="flex items-center gap-1">
                     {isAdmin && (
                       <>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
                           onClick={e => { e.stopPropagation(); setSelected(fee); setEditForm({ fee_name: fee.fee_name, default_amount: fee.default_amount, description: fee.description || '', is_active: fee.is_active }); setEditOpen(true) }}
-                          className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
                         >
                           <Edit2 size={14} />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
                           onClick={e => { e.stopPropagation(); handleDeleteClick(fee) }}
-                          className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors text-slate-400 hover:text-red-400"
                           title="Delete fee type"
                         >
                           <Trash2 size={14} />
-                        </button>
+                        </Button>
                       </>
                     )}
                     {expanded === fee.id ? <ChevronUp size={16} className="text-slate-500" /> : <ChevronDown size={16} className="text-slate-500" />}
@@ -180,12 +189,14 @@ export default function Fees() {
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">Class-specific Overrides</p>
                     {isAdmin && (
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => { setSelected(fee); setOverrideOpen(true) }}
-                        className="btn-secondary text-xs py-1.5 px-3"
+                        className="h-8 text-xs"
                       >
                         <Plus size={12} /> Add Override
-                      </button>
+                      </Button>
                     )}
                   </div>
                   {fee.class_overrides.length === 0 ? (
@@ -211,20 +222,20 @@ export default function Fees() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Add Fee Type">
         <div className="space-y-4">
           <Field label="Fee Name">
-            <input className="input" value={form.fee_name} onChange={e => setForm({ ...form, fee_name: e.target.value })} placeholder="Tuition Fee" />
+            <Input value={form.fee_name} onChange={e => setForm({ ...form, fee_name: e.target.value })} placeholder="Tuition Fee" />
           </Field>
           <Field label="Default Amount (PKR)">
-            <input type="number" className="input" value={form.default_amount} onChange={e => setForm({ ...form, default_amount: e.target.value })} placeholder="3500" />
+            <Input type="number" value={form.default_amount} onChange={e => setForm({ ...form, default_amount: e.target.value })} placeholder="3500" />
           </Field>
           <Field label="Description (Optional)">
-            <input className="input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Monthly tuition fee" />
+            <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Monthly tuition fee" />
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleCreate} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={saving}>
             {saving ? <Spinner size={15} /> : <Plus size={15} />} Create
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -232,26 +243,26 @@ export default function Fees() {
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Fee Type">
         <div className="space-y-4">
           <Field label="Fee Name">
-            <input className="input" value={editForm.fee_name || ''} onChange={e => setEditForm({ ...editForm, fee_name: e.target.value })} />
+            <Input value={editForm.fee_name || ''} onChange={e => setEditForm({ ...editForm, fee_name: e.target.value })} />
           </Field>
           <Field label="Default Amount (PKR)">
-            <input type="number" className="input" value={editForm.default_amount || ''} onChange={e => setEditForm({ ...editForm, default_amount: e.target.value })} />
+            <Input type="number" value={editForm.default_amount || ''} onChange={e => setEditForm({ ...editForm, default_amount: e.target.value })} />
           </Field>
           <Field label="Description">
-            <input className="input" value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
+            <Input value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
           </Field>
           <Field label="Status">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={editForm.is_active} onChange={e => setEditForm({ ...editForm, is_active: e.target.checked })} className="w-4 h-4 accent-brand-500" />
-              <span className="text-sm text-slate-300">Active</span>
-            </label>
+            <div className="flex items-center gap-2">
+              <Switch checked={!!editForm.is_active} onCheckedChange={v => setEditForm({ ...editForm, is_active: v })} />
+              <span className="text-sm text-muted-foreground">Active</span>
+            </div>
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setEditOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleEdit} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button onClick={handleEdit} disabled={saving}>
             {saving ? <Spinner size={15} /> : null} Save
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -259,19 +270,24 @@ export default function Fees() {
       <Modal open={overrideOpen} onClose={() => setOverrideOpen(false)} title={`Class Override — ${selected?.fee_name}`}>
         <div className="space-y-4">
           <Field label="Class">
-            <select className="input" value={overrideForm.class_name} onChange={e => setOverrideForm({ ...overrideForm, class_name: e.target.value })}>
-              {CLASSES.map(c => <option key={c} value={c}>Class {c}</option>)}
-            </select>
+            <Select value={overrideForm.class_name} onValueChange={v => setOverrideForm({ ...overrideForm, class_name: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CLASSES.map(c => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="Amount (PKR)">
-            <input type="number" className="input" value={overrideForm.amount} onChange={e => setOverrideForm({ ...overrideForm, amount: e.target.value })} placeholder="4000" />
+            <Input type="number" value={overrideForm.amount} onChange={e => setOverrideForm({ ...overrideForm, amount: e.target.value })} placeholder="4000" />
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setOverrideOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleAddOverride} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setOverrideOpen(false)}>Cancel</Button>
+          <Button onClick={handleAddOverride} disabled={saving}>
             {saving ? <Spinner size={15} /> : <Plus size={15} />} Add Override
-          </button>
+          </Button>
         </div>
       </Modal>
 

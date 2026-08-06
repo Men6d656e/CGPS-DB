@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { Button } from './ui/button'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -45,13 +46,13 @@ export default class ErrorBoundary extends Component {
                 </pre>
               </details>
             )}
-            <button
+            <Button
               onClick={this.handleRetry}
-              className="btn-primary inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2"
             >
               <RefreshCw size={16} />
               Try Again
-            </button>
+            </Button>
           </div>
         </div>
       )

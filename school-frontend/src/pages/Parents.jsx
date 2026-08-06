@@ -5,6 +5,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { parentsApi } from '../api'
 import { useDebouncedValue } from '../hooks/useDebounce'
 import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Textarea } from '../components/ui/textarea'
 
 const formatCNIC = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 13)
@@ -112,29 +115,31 @@ export default function Parents() {
         description={`${parents.length} registered guardians`}
         action={
           isAdmin && (
-            <button onClick={() => setCreateOpen(true)} className="btn-primary">
+            <Button onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Add Parent
-            </button>
+            </Button>
           )
         }
       />
 
       <div className="relative mb-5">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-        <input
-          className="input pl-9 pr-10"
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="pl-9 pr-10"
           placeholder="Search by name, phone, WhatsApp, or CNIC..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') setSearch(searchInput) }}
         />
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setSearch(searchInput)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 transition-colors"
+          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
           title="Search"
         >
           <Search size={14} />
-        </button>
+        </Button>
       </div>
 
       {loading ? <PageLoader /> : (
@@ -145,9 +150,9 @@ export default function Parents() {
               description="Add guardians to link them with students"
               action={
                 isAdmin && (
-                  <button onClick={() => setCreateOpen(true)} className="btn-primary">
+                  <Button onClick={() => setCreateOpen(true)}>
                     <Plus size={15} />Add Parent
-                  </button>
+                  </Button>
                 )
               }
             />
@@ -166,7 +171,10 @@ export default function Parents() {
               <td className="td text-slate-400 max-w-xs truncate">{p.address || '—'}</td>
               <td className="td">
                 <div className="flex items-center gap-1">
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
                     onClick={async () => {
                       setSelected(p)
                       try {
@@ -175,27 +183,30 @@ export default function Parents() {
                       } catch { setLinkedStudents([]) }
                       setDetailOpen(true)
                     }}
-                    className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
                     title="View details"
                   >
                     <Eye size={14} />
-                  </button>
+                  </Button>
                   {isAdmin && (
                     <>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => { setSelected(p); setEditForm({ guardian_name: p.guardian_name, contact_no: p.contact_no, whatsapp_no: p.whatsapp_no || '', address: p.address || '' }); setEditOpen(true) }}
-                        className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200"
                         title="Edit"
                       >
                         <Edit2 size={14} />
-                      </button>
-                      <button 
+                      </Button>
+                      <Button 
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         onClick={() => handleDeleteClick(p)} 
-                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" 
                         title="Delete"
                       >
                         <Trash2 size={16} />
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>
@@ -219,28 +230,28 @@ export default function Parents() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Add Parent / Guardian">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Full Name">
-            <input className="input" value={form.guardian_name} onChange={e => setForm({ ...form, guardian_name: e.target.value })} placeholder="Muhammad Tariq" />
+            <Input value={form.guardian_name} onChange={e => setForm({ ...form, guardian_name: e.target.value })} placeholder="Muhammad Tariq" />
           </Field>
           <Field label="CNIC">
-            <input className="input" value={form.cnic} onChange={e => setForm({ ...form, cnic: formatCNIC(e.target.value) })} maxLength={15} placeholder="35201-1234567-1" />
+            <Input value={form.cnic} onChange={e => setForm({ ...form, cnic: formatCNIC(e.target.value) })} maxLength={15} placeholder="35201-1234567-1" />
           </Field>
           <Field label="Contact Number">
-            <input className="input" value={form.contact_no} onChange={e => setForm({ ...form, contact_no: e.target.value })} placeholder="03001234567" />
+            <Input value={form.contact_no} onChange={e => setForm({ ...form, contact_no: e.target.value })} placeholder="03001234567" />
           </Field>
           <Field label="WhatsApp (Optional)">
-            <input className="input" value={form.whatsapp_no} onChange={e => setForm({ ...form, whatsapp_no: e.target.value })} placeholder="03001234567" />
+            <Input value={form.whatsapp_no} onChange={e => setForm({ ...form, whatsapp_no: e.target.value })} placeholder="03001234567" />
           </Field>
           <div className="col-span-2">
             <Field label="Address (Optional)">
-              <textarea className="input resize-none h-20" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="House #5, Street 3, Lahore" />
+              <Textarea className="resize-none h-20" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="House #5, Street 3, Lahore" />
             </Field>
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleCreate} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={saving}>
             {saving ? <Spinner size={15} /> : <Plus size={15} />} Add Parent
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -248,25 +259,25 @@ export default function Parents() {
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Parent">
         <div className="grid grid-cols-2 gap-4">
           <Field label="Full Name">
-            <input className="input" value={editForm.guardian_name || ''} onChange={e => setEditForm({ ...editForm, guardian_name: e.target.value })} />
+            <Input value={editForm.guardian_name || ''} onChange={e => setEditForm({ ...editForm, guardian_name: e.target.value })} />
           </Field>
           <Field label="Contact Number">
-            <input className="input" value={editForm.contact_no || ''} onChange={e => setEditForm({ ...editForm, contact_no: e.target.value })} />
+            <Input value={editForm.contact_no || ''} onChange={e => setEditForm({ ...editForm, contact_no: e.target.value })} />
           </Field>
           <Field label="WhatsApp">
-            <input className="input" value={editForm.whatsapp_no || ''} onChange={e => setEditForm({ ...editForm, whatsapp_no: e.target.value })} />
+            <Input value={editForm.whatsapp_no || ''} onChange={e => setEditForm({ ...editForm, whatsapp_no: e.target.value })} />
           </Field>
           <div className="col-span-2">
             <Field label="Address">
-              <textarea className="input resize-none h-20" value={editForm.address || ''} onChange={e => setEditForm({ ...editForm, address: e.target.value })} />
+              <Textarea className="resize-none h-20" value={editForm.address || ''} onChange={e => setEditForm({ ...editForm, address: e.target.value })} />
             </Field>
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setEditOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleEdit} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button onClick={handleEdit} disabled={saving}>
             {saving ? <Spinner size={15} /> : null} Save Changes
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -290,7 +301,7 @@ export default function Parents() {
             </div>
             {/* Linked Students */}
             <div>
-              <p className="label mb-2">Linked Students {linkedStudents.length > 0 ? `(${linkedStudents.length})` : ''}</p>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Linked Students {linkedStudents.length > 0 ? `(${linkedStudents.length})` : ''}</p>
               {linkedStudents.length > 0 ? (
                 <div className="space-y-1.5">
                   {linkedStudents.map(s => (

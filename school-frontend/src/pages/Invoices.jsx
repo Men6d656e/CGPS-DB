@@ -4,9 +4,14 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { invoicesApi, studentsApi, feesApi } from '../api'
 import {
-  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, StatusBadge,
+  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, StatusBadge,
   PageLoader, EmptyState, Spinner
 } from '../components/UI'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Switch } from '../components/ui/switch'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 export default function Invoices() {
   const { user } = useAuth()
@@ -230,9 +235,9 @@ export default function Invoices() {
         description="Manage student fee invoices"
         action={
           isAdmin && (
-            <button onClick={openCreate} className="btn-primary">
+            <Button onClick={openCreate}>
               <Plus size={16} /> Create Invoice
-            </button>
+            </Button>
           )
         }
       />
@@ -255,12 +260,20 @@ export default function Invoices() {
 
       {/* Filter */}
       <div className="mb-5">
-        <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-44">
-          <option value="">All Invoices</option>
-          <option value="pending">Pending</option>
-          <option value="partial">Partial</option>
-          <option value="paid">Paid</option>
-          <option value="overdue">Overdue</option>
+        <Select
+          value={statusFilter === '' ? 'all' : statusFilter}
+          onValueChange={v => setStatusFilter(v === 'all' ? '' : v)}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="All Invoices" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Invoices</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="partial">Partial</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 
@@ -272,9 +285,9 @@ export default function Invoices() {
               description="Create an invoice to start billing"
               action={
                 isAdmin && (
-                  <button onClick={openCreate} className="btn-primary">
+                  <Button onClick={openCreate}>
                     <Plus size={15} />Create Invoice
-                  </button>
+                  </Button>
                 )
               }
             />
@@ -294,24 +307,26 @@ export default function Invoices() {
               <td className="td"><StatusBadge status={inv.status} /></td>
               <td className="td">
                 <div className="flex items-center gap-1">
-                  <button onClick={() => { setSelected(inv); setDetailOpen(true) }}
-                    className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="View">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(inv); setDetailOpen(true) }} title="View">
                     <Eye size={14} />
-                  </button>
-                  <button onClick={() => handlePrint(inv)}
-                    className="p-1.5 hover:bg-slate-700 rounded-lg transition-colors text-slate-400 hover:text-slate-200" title="Print">
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrint(inv)} title="Print">
                     <Printer size={14} />
-                  </button>
+                  </Button>
                   {isAdmin && inv.status !== 'paid' && (
-                    <button onClick={() => handleOverdueClick(inv)}
-                      className="text-xs px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors border border-red-500/20">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOverdueClick(inv)}
+                      className="h-7 px-2 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    >
                       Overdue
-                    </button>
+                    </Button>
                   )}
                   {isAdmin && (
-                    <button onClick={() => handleDeleteClick(inv)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" title="Delete">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(inv)} title="Delete">
                       <Trash2 size={16} />
-                    </button>
+                    </Button>
                   )}
                 </div>
               </td>
@@ -335,20 +350,28 @@ export default function Invoices() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Student">
-              <Select value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })}>
-                <option value="">Select student...</option>
-                {students.map(s => (
-                  <option key={s.id} value={s.id}>{s.first_name} {s.last_name} — Class {s.current_class}</option>
-                ))}
+              <Select
+                value={form.student_id === '' ? 'none' : String(form.student_id)}
+                onValueChange={v => setForm({ ...form, student_id: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select student..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Select student...</SelectItem>
+                  {students.map(s => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.first_name} {s.last_name} — Class {s.current_class}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </Field>
             <Field label="Billing Month">
-              <input type="month" className="input" value={form.billing_month}
+              <Input type="month" value={form.billing_month}
                 onChange={e => setForm({ ...form, billing_month: e.target.value })} />
             </Field>
             <div className="col-span-2">
               <Field label="Due Date">
-                <input type="date" className="input" value={form.due_date}
+                <Input type="date" value={form.due_date}
                   onChange={e => setForm({ ...form, due_date: e.target.value })} />
               </Field>
             </div>
@@ -356,25 +379,25 @@ export default function Invoices() {
 
           {/* Fee Line Items */}
           <div>
-            <label className="label">Fee Items</label>
+            <Label className="mb-2">Fee Items</Label>
             <div className="space-y-2">
               {form.line_items.map((item, i) => {
                 const ft = feeTypes.find(f => f.id === item.fee_type_id)
                 return (
                   <div key={i} className="flex items-center gap-3 bg-slate-800/50 rounded-xl px-4 py-2.5">
-                    <input type="checkbox" checked={item.enabled}
-                      onChange={e => {
+                    <Switch
+                      checked={item.enabled}
+                      onCheckedChange={(checked) => {
                         const items = [...form.line_items]
-                        items[i] = { ...items[i], enabled: e.target.checked }
+                        items[i] = { ...items[i], enabled: checked }
                         setForm({ ...form, line_items: items })
                       }}
-                      className="w-4 h-4 accent-brand-500"
                     />
                     <span className="text-sm text-slate-300 flex-1">{ft?.fee_name}</span>
                     <span className="text-xs text-slate-500">PKR</span>
-                    <input
+                    <Input
                       type="number"
-                      className="w-24 bg-slate-700/50 border border-slate-600/60 rounded-lg px-2 py-1 text-sm font-mono text-slate-200 outline-none focus:border-brand-500/60"
+                      className="w-24"
                       value={item.amount}
                       onChange={e => {
                         const items = [...form.line_items]
@@ -395,10 +418,10 @@ export default function Invoices() {
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleCreate} disabled={saving || !form.student_id || !form.due_date} className="btn-primary">
+          <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={saving || !form.student_id || !form.due_date}>
             {saving ? <Spinner size={15} /> : <Plus size={15} />} Create Invoice
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -422,7 +445,7 @@ export default function Invoices() {
 
             {/* Line items */}
             <div>
-              <p className="label mb-2">Fee Breakdown</p>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Fee Breakdown</p>
               <div className="space-y-1.5">
                 {selected.line_items?.map(li => (
                   <div key={li.id} className="flex justify-between items-center py-2 border-b border-slate-800/60 last:border-0">

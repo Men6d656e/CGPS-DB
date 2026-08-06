@@ -3,7 +3,10 @@ import { Plus, CreditCard, Search, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { paymentsApi, invoicesApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, PageLoader, EmptyState, Spinner } from '../components/UI'
+import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 export default function Payments() {
   const { user } = useAuth()
@@ -97,9 +100,9 @@ export default function Payments() {
         description="Record fee payments against invoices"
         action={
           isAdmin && (
-            <button onClick={openCreate} className="btn-primary">
+            <Button onClick={openCreate}>
               <Plus size={16} /> Record Payment
-            </button>
+            </Button>
           )
         }
       />
@@ -117,25 +120,25 @@ export default function Payments() {
 
       <div className="flex gap-4 mb-5">
         <div className="relative flex-1 max-w-sm">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            className="input pl-9"
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
             placeholder="Search by invoice # or notes..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <input
+        <Input
           type="date"
-          className="input w-40"
+          className="w-40"
           value={dateFilter}
           onChange={e => setDateFilter(e.target.value)}
           title="Filter by payment date"
         />
         {(search || dateFilter) && (
-          <button onClick={() => { setSearch(''); setDateFilter('') }} className="btn-secondary">
+          <Button variant="outline" onClick={() => { setSearch(''); setDateFilter('') }}>
             Clear
-          </button>
+          </Button>
         )}
       </div>
 
@@ -144,7 +147,8 @@ export default function Payments() {
           headers={['Payment #', 'Invoice #', 'Amount Paid', 'Payment Date', 'Notes', 'Recorded At', 'Actions']}
           empty={filtered.length === 0 && (
             <EmptyState icon={CreditCard} title="No payments recorded"
-              description="Record a payment against an invoice"            action={isAdmin && <button onClick={openCreate} className="btn-primary"><Plus size={15} />Record Payment</button>}
+              description="Record a payment against an invoice"
+              action={isAdmin && <Button onClick={openCreate}><Plus size={15} />Record Payment</Button>}
           />)}
         >
           {filtered.map(p => (
@@ -163,13 +167,15 @@ export default function Payments() {
               </td>
               <td className="td">
                 {isAdmin && (
-                  <button 
+                  <Button 
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
                     onClick={() => handleVoidClick(p)} 
-                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-lg transition-colors" 
                     title="Void Payment"
                   >
                     <Trash2 size={16} />
-                  </button>
+                  </Button>
                 )}
               </td>
             </tr>
@@ -191,15 +197,23 @@ export default function Payments() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Record Payment">
         <div className="space-y-4">
           <Field label="Invoice">
-            <Select value={form.invoice_id} onChange={e => setForm({ ...form, invoice_id: e.target.value })}>
-              <option value="">Select invoice...</option>
-              {invoices.map(inv => (
-                <option key={inv.id} value={inv.id}>
-                  INV-{String(inv.id).padStart(4, '0')} — {inv.billing_month} 
-                  {inv.student ? ` (${inv.student.first_name} ${inv.student.last_name})` : ''}
-                  {' '}· Balance PKR {Number(inv.balance_due || 0).toLocaleString()}
-                </option>
-              ))}
+            <Select
+              value={form.invoice_id === '' ? 'none' : String(form.invoice_id)}
+              onValueChange={v => setForm({ ...form, invoice_id: v === 'none' ? '' : v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select invoice..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Select invoice...</SelectItem>
+                {invoices.map(inv => (
+                  <SelectItem key={inv.id} value={String(inv.id)}>
+                    INV-{String(inv.id).padStart(4, '0')} — {inv.billing_month} 
+                    {inv.student ? ` (${inv.student.first_name} ${inv.student.last_name})` : ''}
+                    {' '}· Balance PKR {Number(inv.balance_due || 0).toLocaleString()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </Field>
 
@@ -221,28 +235,28 @@ export default function Payments() {
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Amount (PKR)">
-              <input type="number" className="input" value={form.amount_paid}
+              <Input type="number" value={form.amount_paid}
                 onChange={e => setForm({ ...form, amount_paid: e.target.value })}
                 placeholder={selectedInvoice ? Number(selectedInvoice.balance_due || 0).toString() : '0'}
               />
             </Field>
             <Field label="Payment Date">
-              <input type="date" className="input" value={form.payment_date}
+              <Input type="date" value={form.payment_date}
                 onChange={e => setForm({ ...form, payment_date: e.target.value })} />
             </Field>
           </div>
 
           <Field label="Notes (Optional)">
-            <input className="input" value={form.notes}
+            <Input value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
               placeholder="Cash payment, bank transfer..." />
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleCreate} disabled={saving || !form.invoice_id || !form.amount_paid} className="btn-primary">
+          <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={saving || !form.invoice_id || !form.amount_paid}>
             {saving ? <Spinner size={15} /> : <CreditCard size={15} />} Record Payment
-          </button>
+          </Button>
         </div>
       </Modal>
 
