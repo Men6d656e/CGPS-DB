@@ -139,7 +139,7 @@ uvicorn app.main:app --reload --port 8000
 ### Frontend
 ```bash
 cd school-frontend
-npm install --legacy-peer-deps
+npm install
 npm run dev    # Opens at http://localhost:5173
 ```
 
@@ -202,7 +202,7 @@ See [SPEC/SPEC3.md](SPEC/SPEC3.md) for the plan to replace the raw/custom UI wit
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| **Phase 1** | Shadcn Foundation (init with preset) | ⏳ Pending |
+| **Phase 1** | Shadcn Foundation (init with preset) | ✅ Complete |
 | **Phase 2** | Forms & Controls Migration | ⏳ Pending |
 | **Phase 3** | Data Display Migration | ⏳ Pending |
 | **Phase 4** | Overlays & Feedback Migration | ⏳ Pending |
@@ -226,13 +226,16 @@ See [SPEC/SPEC3.md](SPEC/SPEC3.md) for the plan to replace the raw/custom UI wit
 
 ### Frontend
 - **React** 18.3.1 — UI framework
-- **Vite** 8.0.14 — Build tool + dev server
+- **Vite** 7.3.6 — Build tool + dev server
+- **shadcn/ui** — Component library (new-york style, neutral base, Radix) initialized from preset `b7Br6guwa`
 - **Tailwind CSS** 3.4.4 — Utility-first CSS
 - **React Router DOM** 6.23.1 — Client-side routing
 - **Axios** 1.7.2 — HTTP client (with interceptors)
 - **Recharts** 2.12.7 — Dashboard charts
 - **Lucide React** 0.383.0 — Icon library
-- **React Hot Toast** 2.4.1 — Toast notifications
+- **Radix UI** — Accessible primitives (dialog, select, dropdown, tooltip, …)
+- **Sonner** — Toast notifications (replaces react-hot-toast)
+- **React Hot Toast** 2.4.1 — Toast notifications *(being removed in SPEC3 Phase 4)*
 
 ### Database
 - **PostgreSQL** (via Neon DB — serverless PostgreSQL)
@@ -303,6 +306,7 @@ Each phase includes detailed implementation notes, testing results, and commit h
 | Phase 4 | [docs/phase4-frontend-polish.md](docs/phase4-frontend-polish.md) | Frontend polish & error handling |
 | Phase 5 | [docs/phase5-testing-documentation.md](docs/phase5-testing-documentation.md) | Testing & documentation |
 | Phase 6 | [docs/phase6-advanced-features.md](docs/phase6-advanced-features.md) | Advanced features & dark mode |
+| SPEC3 P1 | [docs/phase1-shadcn-foundation.md](docs/phase1-shadcn-foundation.md) | Shadcn foundation with preset `b7Br6guwa` |
 
 ### Automation & Tools
 - [docs/after-spec1-automation-script.md](docs/after-spec1-automation-script.md) — Makefile automation script documentation

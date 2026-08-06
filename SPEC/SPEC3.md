@@ -260,7 +260,7 @@ The preset defines the **typography, theme colors, and radius** that every compo
 
 | Phase | Status | Tests | Docs | Committed |
 |-------|--------|-------|------|-----------|
-| Phase 1: Shadcn Foundation | ⏳ Pending | ⬜ | ⬜ | ⬜ |
+| Phase 1: Shadcn Foundation | ✅ Complete | ✅ 4 passed | ✅ | ✅ |
 | Phase 2: Forms & Controls | ⏳ Pending | ⬜ | ⬜ | ⬜ |
 | Phase 3: Data Display | ⏳ Pending | ⬜ | ⬜ | ⬜ |
 | Phase 4: Overlays & Feedback | ⏳ Pending | ⬜ | ⬜ | ⬜ |
