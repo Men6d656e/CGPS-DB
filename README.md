@@ -64,9 +64,10 @@ behzad_stuck/
 │   │   ├── crud.py                  # All database operations
 │   │   ├── routers.py               # All API endpoints
 │   │   ├── auth.py                  # JWT tokens, password hashing
-│   │   └── encryption.py            # RSA-OAEP encryption for CNIC fields
+│   │   ├── encryption.py            # RSA-OAEP encryption for CNIC fields
+│   │   └── ratelimit.py             # Shared SlowAPI limiter instance
 │   ├── alembic/                     # Database migrations
-│   │   └── versions/                # 7 migration files
+│   │   └── versions/                # 8 migration files
 │   ├── scripts/                     # Utility scripts
 │   ├── requirements.txt             # Python dependencies
 │   └── .env.example                 # Environment variable template
@@ -91,10 +92,15 @@ behzad_stuck/
 │   │       ├── Invoices.jsx         # Invoice creation + management
 │   │       ├── Payments.jsx         # Payment recording
 │   │       └── Users.jsx            # User management (admin only)
+│   ├── hooks/useDebounce.js         # Debounced value hook
+│   ├── eslint.config.js             # ESLint flat config
+│   ├── .prettierrc                  # Prettier config
 │   ├── package.json
 │   ├── tailwind.config.js
 │   ├── vite.config.js
 │   └── index.html
+│
+├── .github/workflows/ci.yml         # GitHub Actions CI (pytest + vitest + lint + build)
 │
 ├── SPEC/                            # Specifications
 │   ├── SPEC1.md                     # Phase improvement plan (original 6 phases)
@@ -183,7 +189,7 @@ See [SPEC/SPEC2.md](SPEC/SPEC2.md) for the detailed plan derived from the deep c
 | **Phase 3** | Security Hardening | ✅ Complete |
 | **Phase 4** | Data Integrity & Indexes | ✅ Complete |
 | **Phase 5** | Working Dark / Light Theme | ✅ Complete |
-| **Phase 6** | Code Quality & Performance | ⏳ Pending |
+| **Phase 6** | Code Quality & Performance | ✅ Complete |
 
 ---
 

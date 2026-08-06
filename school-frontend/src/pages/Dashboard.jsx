@@ -41,7 +41,7 @@ export default function Dashboard() {
           return { month: monthName, amount: Number(item.amount) }
         })
         setChartData(formattedChartData)
-      } catch (e) {
+      } catch {
         setError('Failed to load dashboard data. Is the backend running?')
       } finally {
         setLoading(false)

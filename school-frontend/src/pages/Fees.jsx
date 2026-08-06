@@ -137,7 +137,7 @@ export default function Fees() {
                           await feesApi.update(fee.id, { is_active: !fee.is_active });
                           toast.success('Fee status updated!');
                           load();
-                        } catch (err) {
+                        } catch {
                           toast.error('Failed to update status');
                         }
                       }}

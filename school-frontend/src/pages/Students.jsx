@@ -3,8 +3,9 @@ import { Plus, Search, Users, Edit2, Trash2, Link, Eye, UserCheck, Phone } from 
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { studentsApi, parentsApi } from '../api'
+import { useDebouncedValue } from '../hooks/useDebounce'
 import {
-  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, StatusBadge,
+  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select,
   PageLoader, EmptyState, Spinner
 } from '../components/UI'
 
@@ -49,6 +50,9 @@ export default function Students() {
   const [detailParents, setDetailParents] = useState([])
   const [saving, setSaving] = useState(false)
 
+  // Live search with debounce (SPEC2 Phase 6) — still works with Enter/button
+  const debouncedSearch = useDebouncedValue(searchInput, 400)
+
   const load = async () => {
     setLoading(true)
     try {
@@ -57,6 +61,8 @@ export default function Students() {
     } catch { toast.error('Failed to load students') }
     finally { setLoading(false) }
   }
+
+  useEffect(() => { setSearch(debouncedSearch) }, [debouncedSearch])
 
   useEffect(() => { 
     setSkip(0)
@@ -226,7 +232,7 @@ export default function Students() {
                         await studentsApi.update(s.id, { status: e.target.value });
                         toast.success('Student status updated!');
                         load();
-                      } catch (err) {
+                      } catch {
                         toast.error('Failed to update status');
                       }
                     }}

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search, UserCheck, Edit2, Phone, Trash2, Eye, Users, GraduationCap } from 'lucide-react'
+import { Plus, Search, UserCheck, Edit2, Phone, Trash2, Eye, GraduationCap } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { parentsApi } from '../api'
+import { useDebouncedValue } from '../hooks/useDebounce'
 import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
 
 const formatCNIC = (value) => {
@@ -37,6 +38,9 @@ export default function Parents() {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const [parentToDelete, setParentToDelete] = useState(null)
 
+  // Live search with debounce (SPEC2 Phase 6)
+  const debouncedSearch = useDebouncedValue(searchInput, 400)
+
   const load = async () => {
     setLoading(true)
     try {
@@ -45,6 +49,8 @@ export default function Parents() {
     } catch { toast.error('Failed to load parents') }
     finally { setLoading(false) }
   }
+
+  useEffect(() => { setSearch(debouncedSearch) }, [debouncedSearch])
 
   useEffect(() => { 
     setSkip(0)

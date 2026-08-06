@@ -34,7 +34,7 @@ export default class ErrorBoundary extends Component {
             <p className="text-sm text-slate-400 mb-6">
               An unexpected error occurred. Please try again or contact support if the problem persists.
             </p>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <details className="mb-6 text-left">
                 <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400 mb-2">
                   Error details (development only)

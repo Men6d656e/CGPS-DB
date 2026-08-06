@@ -22,27 +22,26 @@ vi.mock('../contexts/ThemeContext', () => ({
 }))
 
 describe('App', () => {
-  it('renders login page when not authenticated', () => {
+  it('renders login page when not authenticated', async () => {
     render(
       <BrowserRouter>
         <App />
       </BrowserRouter>
     )
 
-    // Should show login form (heading + submit button)
-    expect(screen.getByRole('heading', { name: /school management/i })).toBeInTheDocument()
+    // Login is lazy-loaded — wait for it
+    expect(await screen.findByRole('heading', { name: /school management/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
-  it('renders login form elements', () => {
+  it('renders login form elements', async () => {
     render(
       <BrowserRouter>
         <App />
       </BrowserRouter>
     )
 
-    // Should have username and password inputs
-    expect(screen.getByPlaceholderText(/enter your username/i)).toBeInTheDocument()
+    expect(await screen.findByPlaceholderText(/enter your username/i)).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/enter your password/i)).toBeInTheDocument()
   })
 })

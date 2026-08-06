@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Loader2, AlertCircle, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // ─── Loading Spinner ──────────────────────────────────────────────────────────
@@ -39,14 +40,27 @@ export function ErrorAlert({ message }) {
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }) {
+  // A11y: close on Escape + lock body scroll while open (SPEC2 Phase 6)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [open, onClose])
+
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className={`relative w-full ${maxWidth} card border-slate-700/60 shadow-2xl animate-slide-up`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800/60">
           <h3 className="font-display font-semibold text-slate-100">{title}</h3>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors" aria-label="Close dialog">
             <X size={18} />
           </button>
         </div>

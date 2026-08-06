@@ -4,19 +4,21 @@ import {
   FileText, CreditCard, GraduationCap, Menu, X,
   LogOut, User as UserIcon, Shield, School
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useAuth } from './contexts/AuthContext'
-import Dashboard from './pages/Dashboard'
-import Students from './pages/Students'
-import Teachers from './pages/Teachers'
-import Parents from './pages/Parents'
-import Fees from './pages/Fees'
-import Invoices from './pages/Invoices'
-import Payments from './pages/Payments'
-import UsersPage from './pages/Users'
-import Login from './pages/Login'
 import { PageLoader } from './components/UI'
 import ThemeToggle from './components/ThemeToggle'
+
+// Lazy-loaded routes — split the bundle per page (SPEC2 Phase 6)
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const Students = lazy(() => import('./pages/Students'))
+const Teachers = lazy(() => import('./pages/Teachers'))
+const Parents = lazy(() => import('./pages/Parents'))
+const Fees = lazy(() => import('./pages/Fees'))
+const Invoices = lazy(() => import('./pages/Invoices'))
+const Payments = lazy(() => import('./pages/Payments'))
+const UsersPage = lazy(() => import('./pages/Users'))
+const Login = lazy(() => import('./pages/Login'))
 
 const navItems = [
   { to: '/',          icon: LayoutDashboard, label: 'Dashboard' },
@@ -46,9 +48,11 @@ export default function App() {
   // ─── Not authenticated — show login ─────────────────────────────────────
   if (!isAuthenticated) {
     return (
-      <Routes>
-        <Route path="/*" element={<Login />} />
-      </Routes>
+      <Suspense fallback={<div className="h-screen flex items-center justify-center"><PageLoader /></div>}>
+        <Routes>
+          <Route path="/*" element={<Login />} />
+        </Routes>
+      </Suspense>
     )
   }
 
@@ -176,16 +180,18 @@ export default function App() {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6">
           <div className="page-enter max-w-7xl mx-auto">
-            <Routes>
-              <Route path="/"          element={<Dashboard />} />
-              <Route path="/students"  element={<Students />} />
-              <Route path="/teachers"  element={<Teachers />} />
-              <Route path="/parents"   element={<Parents />} />
-              <Route path="/fees"      element={<Fees />} />
-              <Route path="/invoices"  element={<Invoices />} />
-              <Route path="/payments"  element={<Payments />} />
-              <Route path="/users"     element={<UsersPage />} />
-            </Routes>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/"          element={<Dashboard />} />
+                <Route path="/students"  element={<Students />} />
+                <Route path="/teachers"  element={<Teachers />} />
+                <Route path="/parents"   element={<Parents />} />
+                <Route path="/fees"      element={<Fees />} />
+                <Route path="/invoices"  element={<Invoices />} />
+                <Route path="/payments"  element={<Payments />} />
+                <Route path="/users"     element={<UsersPage />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
       </div>

@@ -3,6 +3,7 @@ import { Plus, Search, Users, Edit2, Trash2, Eye, Phone, Briefcase, GraduationCa
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 import { teachersApi } from '../api'
+import { useDebouncedValue } from '../hooks/useDebounce'
 import {
   SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select,
   PageLoader, EmptyState, Spinner
@@ -38,6 +39,9 @@ export default function Teachers() {
   const [selected, setSelected] = useState(null)
   const [saving, setSaving] = useState(false)
 
+  // Live search with debounce (SPEC2 Phase 6)
+  const debouncedSearch = useDebouncedValue(searchInput, 400)
+
   const load = async () => {
     setLoading(true)
     try {
@@ -46,6 +50,8 @@ export default function Teachers() {
     } catch { toast.error('Failed to load teachers') }
     finally { setLoading(false) }
   }
+
+  useEffect(() => { setSearch(debouncedSearch) }, [debouncedSearch])
 
   useEffect(() => { 
     setSkip(0)

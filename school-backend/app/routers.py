@@ -12,8 +12,6 @@ Fixes applied:
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
 from app.config import settings
 
@@ -24,9 +22,7 @@ from app.auth import (
     get_current_user, verify_password, require_admin, require_staff_or_admin,
 )
 from app.models import User, UserRole
-
-# Shared limiter — same instance as in main.py (accessed via app.state.limiter)
-limiter = Limiter(key_func=get_remote_address)
+from app.ratelimit import limiter  # shared instance (also attached to app.state)
 
 
 # ─── Auth Router ───────────────────────────────────────────────────────────────
