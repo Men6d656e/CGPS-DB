@@ -104,7 +104,8 @@ behzad_stuck/
 │
 ├── SPEC/                            # Specifications
 │   ├── SPEC1.md                     # Phase improvement plan (original 6 phases)
-│   └── SPEC2.md                     # Reliability & quality plan (deep review fixes)
+│   ├── SPEC2.md                     # Reliability & quality plan (deep review fixes)
+│   └── SPEC3.md                     # Shadcn/ui migration plan (preset b7Br6guwa)
 │
 ├── docs/                            # Documentation
 │   ├── phase1-security-fixes.md     # Phase 1: Security & core fixes
@@ -193,6 +194,23 @@ See [SPEC/SPEC2.md](SPEC/SPEC2.md) for the detailed plan derived from the deep c
 
 ---
 
+## 🎨 Shadcn/UI Migration (SPEC3)
+
+See [SPEC/SPEC3.md](SPEC/SPEC3.md) for the plan to replace the raw/custom UI with **shadcn/ui** components initialized from the selected preset (`b7Br6guwa` — typography, theme colors, radius). It replaces hand-rolled components (`UI.jsx`), custom CSS classes (`.btn-*`, `.input`, `.card`, `.badge-*`, `.th/.td`), and `react-hot-toast` with shadcn components (`Button`, `Input`, `Select`, `Card`, `Dialog`, `Table`, `Badge`, `sonner`, …).
+
+### Current Phases
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **Phase 1** | Shadcn Foundation (init with preset) | ⏳ Pending |
+| **Phase 2** | Forms & Controls Migration | ⏳ Pending |
+| **Phase 3** | Data Display Migration | ⏳ Pending |
+| **Phase 4** | Overlays & Feedback Migration | ⏳ Pending |
+| **Phase 5** | App Shell & Theme Polish | ⏳ Pending |
+| **Phase 6** | Cleanup & Final Verification | ⏳ Pending |
+
+---
+
 ## 🔧 Technology Stack
 
 ### Backend
@@ -272,6 +290,7 @@ All endpoints are prefixed with `/api/v1`.
 - [ProjectOverview.md](ProjectOverview.md) — Original project overview
 - [SPEC/SPEC1.md](SPEC/SPEC1.md) — Phased improvement plan (original 6 phases)
 - [SPEC/SPEC2.md](SPEC/SPEC2.md) — Reliability & quality plan (deep review fixes)
+- [SPEC/SPEC3.md](SPEC/SPEC3.md) — Shadcn/ui migration plan (preset `b7Br6guwa`)
 
 ### Phase Documentation
 Each phase includes detailed implementation notes, testing results, and commit history:
