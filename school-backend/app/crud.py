@@ -72,6 +72,22 @@ async def get_user_by_id(db: AsyncSession, user_id: int):
     return result.scalar_one_or_none()
 
 
+# ─── Enum helpers ────────────────────────────────────────────────────────────
+
+def _to_enum(enum_cls, value):
+    """Map a lowercase API value to its enum member.
+
+    SAEnum columns persist enum *names* (e.g. "ACTIVE"), so comparing the
+    column to a raw lowercase string like "active" breaks (Postgres rejects
+    the value). Converting via the enum's .value lookups makes filters work.
+    Returns None for invalid values (filter is then ignored).
+    """
+    try:
+        return enum_cls(value)
+    except ValueError:
+        return None
+
+
 # ─── Students ─────────────────────────────────────────────────────────────────
 
 def _decrypt_student_cnic(student: models.Student):
@@ -86,7 +102,9 @@ async def get_students(db: AsyncSession, skip: int = 0, limit: int = 50, status:
         selectinload(models.Student.parent_links).selectinload(models.StudentParentRel.parent)
     )
     if status:
-        q = q.where(models.Student.status == status)
+        status_enum = _to_enum(models.StudentStatus, status)
+        if status_enum:
+            q = q.where(models.Student.status == status_enum)
     if search:
         pattern = f"%{search}%"
         q = q.where(
@@ -291,7 +309,9 @@ async def unlink_parent_from_student(db: AsyncSession, student_id: int, parent_i
 async def get_teachers(db: AsyncSession, skip: int = 0, limit: int = 50, status: str = None, search: str = None):
     q = select(models.Teacher)
     if status:
-        q = q.where(models.Teacher.status == status)
+        status_enum = _to_enum(models.TeacherStatus, status)
+        if status_enum:
+            q = q.where(models.Teacher.status == status_enum)
     if search:
         pattern = f"%{search}%"
         q = q.where(
@@ -420,7 +440,9 @@ async def get_invoices(db: AsyncSession, student_id: int = None, status: str = N
     if student_id:
         q = q.where(models.Invoice.student_id == student_id)
     if status:
-        q = q.where(models.Invoice.status == status)
+        status_enum = _to_enum(models.InvoiceStatus, status)
+        if status_enum:
+            q = q.where(models.Invoice.status == status_enum)
     q = q.offset(skip).limit(limit).order_by(desc(models.Invoice.created_at))
     result = await db.execute(q)
     return result.scalars().all()
@@ -553,14 +575,20 @@ async def get_dashboard_stats(db: AsyncSession) -> schemas.DashboardStats:
 
     total_students = (await db.execute(select(func.count(models.Student.id)))).scalar()
     active_students = (await db.execute(
-        select(func.count(models.Student.id)).where(models.Student.status == "active")
+        select(func.count(models.Student.id)).where(
+            models.Student.status == models.StudentStatus.ACTIVE
+        )
     )).scalar()
     total_parents = (await db.execute(select(func.count(models.Parent.id)))).scalar()
     pending_invoices = (await db.execute(
-        select(func.count(models.Invoice.id)).where(models.Invoice.status == "pending")
+        select(func.count(models.Invoice.id)).where(
+            models.Invoice.status == models.InvoiceStatus.PENDING
+        )
     )).scalar()
     overdue_invoices = (await db.execute(
-        select(func.count(models.Invoice.id)).where(models.Invoice.status == "overdue")
+        select(func.count(models.Invoice.id)).where(
+            models.Invoice.status == models.InvoiceStatus.OVERDUE
+        )
     )).scalar()
 
     collected_q = select(func.coalesce(func.sum(models.Payment.amount_paid), 0)).join(
@@ -572,14 +600,18 @@ async def get_dashboard_stats(db: AsyncSession) -> schemas.DashboardStats:
         func.coalesce(func.sum(models.InvoiceLineItem.amount), 0)
     ).join(
         models.Invoice, models.InvoiceLineItem.invoice_id == models.Invoice.id
-    ).where(models.Invoice.status.in_(["pending", "partial", "overdue"]))
+    ).where(models.Invoice.status.in_([
+        models.InvoiceStatus.PENDING, models.InvoiceStatus.PARTIAL, models.InvoiceStatus.OVERDUE
+    ]))
     pending_total = (await db.execute(pending_total_q)).scalar()
 
     paid_partial_q = select(
         func.coalesce(func.sum(models.Payment.amount_paid), 0)
     ).join(
         models.Invoice, models.Payment.invoice_id == models.Invoice.id
-    ).where(models.Invoice.status.in_(["pending", "partial", "overdue"]))
+    ).where(models.Invoice.status.in_([
+        models.InvoiceStatus.PENDING, models.InvoiceStatus.PARTIAL, models.InvoiceStatus.OVERDUE
+    ]))
     paid_partial = (await db.execute(paid_partial_q)).scalar()
 
     return schemas.DashboardStats(
@@ -602,9 +634,10 @@ async def get_monthly_collections(db: AsyncSession, months: int = 6) -> list[sch
         )
         .join(models.Payment, models.Payment.invoice_id == models.Invoice.id, isouter=True)
         .group_by(models.Invoice.billing_month)
-        .order_by(models.Invoice.billing_month)
+        .order_by(models.Invoice.billing_month.desc())
         .limit(months)
     )
     result = await db.execute(q)
     rows = result.all()
+    rows.reverse()  # most recent N months, returned ascending for the chart
     return [schemas.MonthlyCollection(month=row.billing_month, amount=Decimal(str(row.amount))) for row in rows]

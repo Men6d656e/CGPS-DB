@@ -11,6 +11,7 @@ const ROLE_OPTIONS = [
 ]
 
 export default function Users() {
+  const { user } = useAuth()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -99,7 +100,6 @@ export default function Users() {
   }
 
   // ─── Role guard: only admins can access this page ───────────────────────
-  const { user } = useAuth()
   if (user?.role !== 'admin') {
     return (
       <div className="animate-fade-in">
