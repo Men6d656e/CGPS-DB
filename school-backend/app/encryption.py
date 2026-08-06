@@ -4,8 +4,9 @@ Uses RSA-OAEP with SHA-256 for secure asymmetric encryption.
 """
 
 import base64
-import hashlib
 import binascii
+import hashlib
+import hmac
 from typing import Optional
 
 from cryptography.hazmat.primitives import hashes
@@ -137,13 +138,27 @@ def decrypt_field(cipher_text: str) -> str:
 
 # ─── Hashing for Uniqueness ───────────────────────────────────────────────────
 
+def _hash_secret() -> str:
+    """Key used for dedup hashing — HASH_SECRET_KEY or SECRET_KEY."""
+    return settings.HASH_SECRET_KEY or settings.SECRET_KEY
+
+
 def hash_for_dedup(value: str) -> str:
     """
-    Create a SHA-256 hash of the plaintext value for uniqueness checking.
-    Since RSA encryption produces different ciphertexts each time (due to
-    OAEP random padding), we store a hash separately for uniqueness checks.
+    Create an HMAC-SHA256 (keyed) hash of the plaintext value for uniqueness
+    checking. Since RSA encryption produces different ciphertexts each time
+    (due to OAEP random padding), we store a hash separately for uniqueness
+    checks.
+
+    Keyed HMAC (instead of raw SHA-256) prevents offline brute-forcing of the
+    low-entropy CNIC/B-Form space: without the key, an attacker cannot
+    recompute the hash for candidate values.
     """
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+    return hmac.new(
+        _hash_secret().encode("utf-8"),
+        value.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 # ─── Bulk Re-encryption Helpers ───────────────────────────────────────────────

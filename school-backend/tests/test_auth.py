@@ -8,6 +8,8 @@ is async, so the decode tests are async (pytest-asyncio auto mode).
 
 from datetime import datetime, timezone
 
+from jose import jwt as jose_jwt
+
 from app.auth import (
     create_access_token,
     create_refresh_token,
@@ -15,6 +17,7 @@ from app.auth import (
     get_password_hash,
     verify_password,
 )
+from app.config import settings
 
 
 class TestPasswordHashing:
@@ -91,6 +94,18 @@ class TestJWTTokens:
         payload = await decode_token(token, expected_type="access")
         assert "exp" in payload
         assert payload["exp"] > datetime.now(timezone.utc).timestamp()
+
+    def test_access_token_has_jti(self):
+        """Access tokens must carry a unique jti so they can be revoked."""
+        token = create_access_token({"sub": "testuser"})
+        payload = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        assert payload.get("jti")
+
+    def test_refresh_token_has_jti(self):
+        """Refresh tokens must carry a unique jti so they can be revoked."""
+        token = create_refresh_token({"sub": "testuser"})
+        payload = jose_jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        assert payload.get("jti")
 
 
 class TestUserRole:

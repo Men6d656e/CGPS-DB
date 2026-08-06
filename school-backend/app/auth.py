@@ -5,6 +5,7 @@ refresh token management, and role-based access control.
 
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -34,20 +35,28 @@ def get_password_hash(password: str) -> str:
 # ─── JWT Token Utilities ──────────────────────────────────────────────────────
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a short-lived access token (default 30 minutes)."""
+    """Create a short-lived access token (default 30 minutes).
+
+    Includes a unique ``jti`` (JWT ID) so the token can be individually
+    revoked via the database revocation list.
+    """
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    to_encode.update({"exp": expire, "type": "access"})
+    to_encode.update({"exp": expire, "type": "access", "jti": uuid4().hex})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
 def create_refresh_token(data: dict) -> str:
-    """Create a long-lived refresh token (default 7 days)."""
+    """Create a long-lived refresh token (default 7 days).
+
+    Includes a unique ``jti`` (JWT ID) so the token can be individually
+    revoked via the database revocation list.
+    """
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh"})
+    to_encode.update({"exp": expire, "type": "refresh", "jti": uuid4().hex})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
