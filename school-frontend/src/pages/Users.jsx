@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Users as UsersIcon, Shield, ShieldOff, Key, Search, ShieldX } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { usersApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Table, Modal, Field, PageLoader, EmptyState, Spinner, STATUS_STYLES } from '../components/UI'

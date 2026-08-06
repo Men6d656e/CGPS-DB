@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, CreditCard, Search, Trash2 } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { paymentsApi, invoicesApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, PageLoader, EmptyState, Spinner } from '../components/UI'

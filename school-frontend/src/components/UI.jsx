@@ -1,7 +1,10 @@
-import { useEffect } from 'react'
-import { Loader2, X } from 'lucide-react'
-import { Button } from './ui/button'
+import { Loader2 } from 'lucide-react'
 import { Label } from './ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from './ui/alert-dialog'
 import { Badge } from './ui/badge'
 import { Card, CardContent } from './ui/card'
 import { Alert, AlertDescription } from './ui/alert'
@@ -62,54 +65,40 @@ export function ErrorAlert({ message }) {
   )
 }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
+// ─── Modal (shadcn Dialog) ────────────────────────────────────────────────────
 export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }) {
-  // A11y: close on Escape + lock body scroll while open (SPEC2 Phase 6)
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
-    }
-  }, [open, onClose])
-
-  if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative w-full ${maxWidth} bg-card border border-border rounded-2xl shadow-2xl animate-slide-up`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h3 className="font-display font-semibold text-foreground">{title}</h3>
-          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-muted-foreground" aria-label="Close dialog">
-            <X size={18} />
-          </Button>
-        </div>
-        <div className="px-6 py-5">{children}</div>
-      </div>
-    </div>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className={maxWidth}>
+        <DialogHeader>
+          <DialogTitle className="font-display">{title}</DialogTitle>
+        </DialogHeader>
+        <div className="pt-2">{children}</div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-// ─── Confirm Modal ─────────────────────────────────────────────────────────────
+// ─── Confirm Modal (shadcn AlertDialog) ────────────────────────────────────────
 export function ConfirmModal({ open, onClose, onConfirm, title, message, confirmText = "Confirm", isDestructive = false }) {
-  if (!open) return null
   return (
-    <Modal open={open} onClose={onClose} title={title} maxWidth="max-w-sm">
-      <p className="text-muted-foreground text-sm mb-6">{message}</p>
-      <div className="flex justify-end gap-3">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button
-          variant={isDestructive ? "destructive" : "default"}
-          onClick={() => { onConfirm(); onClose(); }}
-        >
-          {confirmText}
-        </Button>
-      </div>
-    </Modal>
+    <AlertDialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{message}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className={isDestructive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            onClick={() => { onConfirm(); onClose(); }}
+          >
+            {confirmText}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 

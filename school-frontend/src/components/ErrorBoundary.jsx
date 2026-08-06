@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from './ui/button'
+import { Alert, AlertDescription } from './ui/alert'
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -36,15 +37,12 @@ export default class ErrorBoundary extends Component {
               An unexpected error occurred. Please try again or contact support if the problem persists.
             </p>
             {import.meta.env.DEV && this.state.error && (
-              <details className="mb-6 text-left">
-                <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400 mb-2">
-                  Error details (development only)
-                </summary>
-                <pre className="text-xs text-red-400 bg-red-500/5 border border-red-500/20 rounded-xl p-3 overflow-auto max-h-40">
+              <Alert variant="destructive" className="mb-6 text-left">
+                <AlertDescription className="text-xs overflow-auto max-h-40 font-mono">
                   {this.state.error.toString()}
                   {this.state.errorInfo?.componentStack}
-                </pre>
-              </details>
+                </AlertDescription>
+              </Alert>
             )}
             <Button
               onClick={this.handleRetry}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, FileText, Eye, Trash2, Printer } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { useAuth } from '../contexts/AuthContext'
 import { invoicesApi, studentsApi, feesApi } from '../api'
 import {

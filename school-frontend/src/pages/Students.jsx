@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Search, Users, Edit2, Trash2, Link, Eye, UserCheck, Phone } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { useAuth } from '../contexts/AuthContext'
 import { studentsApi, parentsApi } from '../api'
 import { useDebouncedValue } from '../hooks/useDebounce'

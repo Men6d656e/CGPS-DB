@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, DollarSign, Edit2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { feesApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner, ConfirmModal, STATUS_STYLES } from '../components/UI'
