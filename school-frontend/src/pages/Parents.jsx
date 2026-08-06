@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search, UserCheck, Edit2, Phone, Trash2, Eye, GraduationCap } from 'lucide-react'
-import { toast } from 'sonner'
-import { useAuth } from '../contexts/AuthContext'
+import { Plus, Search, UserCheck, Edit2, Phone, Trash2, Eye, Users, GraduationCap } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { parentsApi } from '../api'
 import { useDebouncedValue } from '../hooks/useDebounce'
 import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
@@ -23,8 +22,6 @@ const emptyForm = {
 }
 
 export default function Parents() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
   const [parents, setParents] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -54,12 +51,7 @@ export default function Parents() {
     finally { setLoading(false) }
   }
 
-  useEffect(() => { setSearch(debouncedSearch) }, [debouncedSearch])
-
-  useEffect(() => { 
-    setSkip(0)
-  }, [search])
-
+  useEffect(() => { setSkip(0) }, [search])
   useEffect(() => { load() }, [search, skip])
 
   const handleCreate = async () => {
@@ -115,19 +107,17 @@ export default function Parents() {
         title="Parents / Guardians"
         description={`${parents.length} registered guardians`}
         action={
-          isAdmin && (
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus size={16} /> Add Parent
-            </Button>
-          )
+          <button onClick={() => setCreateOpen(true)} className="btn-primary">
+            <Plus size={16} /> Add Parent
+          </button>
         }
       />
 
       <div className="relative mb-5">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-9 pr-10"
-          placeholder="Search by name, phone, WhatsApp, or CNIC..."
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          className="input pl-9 pr-10"
+          placeholder="Search by name or phone..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') setSearch(searchInput) }}
@@ -136,7 +126,7 @@ export default function Parents() {
           variant="ghost"
           size="icon"
           onClick={() => setSearch(searchInput)}
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
           title="Search"
         >
           <Search size={14} />
@@ -150,27 +140,25 @@ export default function Parents() {
             <EmptyState icon={UserCheck} title="No parents found"
               description="Add guardians to link them with students"
               action={
-                isAdmin && (
-                  <Button onClick={() => setCreateOpen(true)}>
-                    <Plus size={15} />Add Parent
-                  </Button>
-                )
+                <button onClick={() => setCreateOpen(true)} className="btn-primary">
+                  <Plus size={15} />Add Parent
+                </button>
               }
             />
           )}
         >
           {parents.map(p => (
-            <TableRow key={p.id}>
-              <TableCell className="font-medium text-foreground">{p.guardian_name}</TableCell>
-              <TableCell className="font-mono text-xs text-muted-foreground">{p.cnic}</TableCell>
-              <TableCell>
-                <a href={`tel:${p.contact_no}`} className="flex items-center gap-1.5 text-accent-brand hover:text-accent-brand/80 transition-colors">
+            <tr key={p.id} className="table-row">
+              <td className="td font-medium text-gray-700">{p.guardian_name}</td>
+              <td className="td font-mono text-xs text-gray-400">{p.cnic}</td>
+              <td className="td">
+                <a href={`tel:${p.contact_no}`} className="flex items-center gap-1.5 text-teal-600 hover:text-teal-500 transition-colors">
                   <Phone size={13} />{p.contact_no}
                 </a>
-              </TableCell>
-              <TableCell className="text-muted-foreground">{p.whatsapp_no || '—'}</TableCell>
-              <TableCell className="text-muted-foreground max-w-xs truncate">{p.address || '—'}</TableCell>
-              <TableCell>
+              </td>
+              <td className="td text-gray-500 text-sm">{p.whatsapp_no || '—'}</td>
+              <td className="td text-gray-500 max-w-xs truncate text-sm">{p.address || '—'}</td>
+              <td className="td">
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
@@ -184,32 +172,25 @@ export default function Parents() {
                       } catch { setLinkedStudents([]) }
                       setDetailOpen(true)
                     }}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
                     title="View details"
                   >
                     <Eye size={14} />
-                  </Button>
-                  {isAdmin && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => { setSelected(p); setEditForm({ guardian_name: p.guardian_name, contact_no: p.contact_no, whatsapp_no: p.whatsapp_no || '', address: p.address || '' }); setEditOpen(true) }}
-                        title="Edit"
-                      >
-                        <Edit2 size={14} />
-                      </Button>
-                      <Button 
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeleteClick(p)} 
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </>
-                  )}
+                  </button>
+                  <button
+                    onClick={() => { setSelected(p); setEditForm({ guardian_name: p.guardian_name, contact_no: p.contact_no, whatsapp_no: p.whatsapp_no || '', address: p.address || '' }); setEditOpen(true) }}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                    title="Edit"
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(p)}
+                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-500"
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </TableCell>
             </TableRow>
@@ -218,12 +199,12 @@ export default function Parents() {
       )}
 
       {!loading && (
-        <Pagination 
-          skip={skip} 
-          limit={limit} 
-          totalItemsInCurrentPage={parents.length} 
-          onNext={() => setSkip(skip + limit)} 
-          onPrev={() => setSkip(Math.max(0, skip - limit))} 
+        <Pagination
+          skip={skip}
+          limit={limit}
+          totalItemsInCurrentPage={parents.length}
+          onNext={() => setSkip(skip + limit)}
+          onPrev={() => setSkip(Math.max(0, skip - limit))}
         />
       )}
 
@@ -294,34 +275,32 @@ export default function Parents() {
                 ['WhatsApp', selected.whatsapp_no || '—'],
                 ['Address', selected.address || '—'],
               ].map(([k, v]) => (
-                <div key={k} className="bg-muted/40 rounded-md px-4 py-3">
-                  <p className="text-xs text-muted-foreground mb-0.5">{k}</p>
-                  <p className="text-foreground font-medium capitalize">{v}</p>
+                <div key={k} className="bg-gray-50 rounded-xl px-4 py-3">
+                  <p className="text-xs text-gray-400 mb-0.5">{k}</p>
+                  <p className="text-gray-700 font-medium capitalize">{v}</p>
                 </div>
               ))}
             </div>
-            {/* Linked Students */}
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2">Linked Students {linkedStudents.length > 0 ? `(${linkedStudents.length})` : ''}</p>
               {linkedStudents.length > 0 ? (
                 <div className="space-y-1.5">
                   {linkedStudents.map(s => (
-                    <div key={s.id} className="flex items-center gap-3 bg-muted/40 rounded-md px-4 py-2.5">
-                      <GraduationCap size={14} className="text-accent-brand" />
-                      <span className="text-sm text-foreground">{s.first_name} {s.last_name}</span>
-                      <span className="text-xs text-muted-foreground ml-auto">Class {s.current_class}</span>
+                    <div key={s.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
+                      <GraduationCap size={14} className="text-teal-500" />
+                      <span className="text-sm text-gray-600">{s.first_name} {s.last_name}</span>
+                      <span className="text-xs text-gray-400 ml-auto">Class {s.current_class}</span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No students linked to this guardian</p>
+                <p className="text-sm text-gray-400">No students linked to this guardian</p>
               )}
             </div>
           </div>
         )}
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <ConfirmModal
         open={confirmDeleteOpen}
         onClose={() => setConfirmDeleteOpen(false)}

@@ -21,11 +21,6 @@ from app.database import Base
 
 # ─── Users (Authentication) ────────────────────────────────────────────────────
 
-class UserRole(str, enum.Enum):
-    ADMIN = "admin"
-    STAFF = "staff"
-
-
 class User(Base):
     __tablename__ = "users"
 
@@ -34,11 +29,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
-    role: Mapped[str] = mapped_column(
-        String(10), default=UserRole.STAFF.value, nullable=False
-    )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    is_superuser: Mapped[bool] = mapped_column(default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 

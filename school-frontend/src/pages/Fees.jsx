@@ -2,20 +2,11 @@ import { useEffect, useState } from 'react'
 import { Plus, DollarSign, Edit2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { feesApi } from '../api'
-import { useAuth } from '../contexts/AuthContext'
-import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner, ConfirmModal, STATUS_STYLES } from '../components/UI'
-import { Button } from '../components/ui/button'
-import { Input } from '../components/ui/input'
-import { Switch } from '../components/ui/switch'
-import { Badge } from '../components/ui/badge'
-import { Card } from '../components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
 
 const CLASSES = ['Nursery','KG','1','2','3','4','5','6','7','8','9','10']
 
 export default function Fees() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
   const [fees, setFees] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
@@ -102,122 +93,87 @@ export default function Fees() {
         title="Fee Structure"
         description="Define fee types and per-class overrides"
         action={
-          isAdmin && (
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus size={16} /> Add Fee Type
-            </Button>
-          )
+          <button onClick={() => setCreateOpen(true)} className="btn-primary">
+            <Plus size={16} /> Add Fee Type
+          </button>
         }
       />
 
       {loading ? <PageLoader /> : fees.length === 0 ? (
         <EmptyState icon={DollarSign} title="No fee types yet"
           description="Add tuition fee, library fee, etc."
-          action={isAdmin && <Button onClick={() => setCreateOpen(true)}><Plus size={15} />Add Fee Type</Button>}
-        />) : (
+          action={<button onClick={() => setCreateOpen(true)} className="btn-primary"><Plus size={15} />Add Fee Type</button>}
+        />
+      ) : (
         <div className="space-y-3">
           {fees.map(fee => (
             <Card key={fee.id} className="overflow-hidden">
               <div
-                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50/80 transition-colors"
                 onClick={() => setExpanded(expanded === fee.id ? null : fee.id)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-md bg-accent-brand/10 border border-accent-brand/20 flex items-center justify-center">
-                    <DollarSign size={16} className="text-accent-brand" />
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center stat-card-icon">
+                    <DollarSign size={16} className="text-teal-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">{fee.fee_name}</p>
-                    {fee.description && <p className="text-xs text-muted-foreground mt-0.5">{fee.description}</p>}
+                    <p className="font-semibold text-gray-700">{fee.fee_name}</p>
+                    {fee.description && <p className="text-xs text-gray-400 mt-0.5">{fee.description}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="font-mono font-medium text-foreground">PKR {Number(fee.default_amount).toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">default / month</p>
+                    <p className="font-mono font-semibold text-gray-700">PKR {Number(fee.default_amount).toLocaleString()}</p>
+                    <p className="text-xs text-gray-400">default / month</p>
                   </div>
-                  {isAdmin ? (
-                    <Badge
-                      variant="outline"
-                      className={`${fee.is_active ? STATUS_STYLES.active : STATUS_STYLES.inactive} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background`}
-                      title="Click to toggle status"
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          e.currentTarget.click();
-                        }
-                      }}
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await feesApi.update(fee.id, { is_active: !fee.is_active });
-                          toast.success('Fee status updated!');
-                          load();
-                        } catch {
-                          toast.error('Failed to update status');
-                        }
-                      }}
-                    >
-                      {fee.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className={fee.is_active ? STATUS_STYLES.active : STATUS_STYLES.inactive}>
-                      {fee.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  )}
+                  <span
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await feesApi.update(fee.id, { is_active: !fee.is_active });
+                        toast.success('Fee status updated!');
+                        load();
+                      } catch (err) {
+                        toast.error('Failed to update status');
+                      }
+                    }}
+                    className={`badge ${fee.is_active ? 'badge-active' : 'badge-withdrawn'} cursor-pointer`}
+                    title="Click to toggle status"
+                  >
+                    {fee.is_active ? 'Active' : 'Inactive'}
+                  </span>
                   <div className="flex items-center gap-1">
-                    {isAdmin && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={e => { e.stopPropagation(); setSelected(fee); setEditForm({ fee_name: fee.fee_name, default_amount: fee.default_amount, description: fee.description || '', is_active: fee.is_active }); setEditOpen(true) }}
-                        >
-                          <Edit2 size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          onClick={e => { e.stopPropagation(); handleDeleteClick(fee) }}
-                          title="Delete fee type"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </>
-                    )}
-                    {expanded === fee.id ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
+                    <button
+                      onClick={e => { e.stopPropagation(); setSelected(fee); setEditForm({ fee_name: fee.fee_name, default_amount: fee.default_amount, description: fee.description || '', is_active: fee.is_active }); setEditOpen(true) }}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    {expanded === fee.id ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                   </div>
                 </div>
               </div>
 
               {/* Class Overrides Panel */}
               {expanded === fee.id && (
-                <div className="border-t border-border bg-muted/50 px-5 py-4">
+                <div className="border-t border-gray-100 bg-gray-50/80 px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Class-specific Overrides</p>
-                    {isAdmin && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { setSelected(fee); setOverrideOpen(true) }}
-                        className="h-8 text-xs"
-                      >
-                        <Plus size={12} /> Add Override
-                      </Button>
-                    )}
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Class-specific Overrides</p>
+                    <button
+                      onClick={() => { setSelected(fee); setOverrideOpen(true) }}
+                      className="btn-secondary text-xs py-1.5 px-3"
+                    >
+                      <Plus size={12} /> Add Override
+                    </button>
                   </div>
                   {fee.class_overrides.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No overrides — all classes use default amount</p>
+                    <p className="text-sm text-gray-400">No overrides — all classes use default amount</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {fee.class_overrides.map(ov => (
-                        <div key={ov.id} className="flex items-center gap-2 bg-muted/60 border border-border rounded-md px-3 py-2">
-                          <span className="text-xs text-muted-foreground">Class {ov.class_name}</span>
-                          <span className="text-xs font-mono text-foreground font-medium">PKR {Number(ov.amount).toLocaleString()}</span>
+                        <div key={ov.id} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+                          <span className="text-xs text-gray-500">Class {ov.class_name}</span>
+                          <span className="text-xs font-mono text-gray-700 font-semibold">PKR {Number(ov.amount).toLocaleString()}</span>
                         </div>
                       ))}
                     </div>
@@ -263,10 +219,10 @@ export default function Fees() {
             <Input value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
           </Field>
           <Field label="Status">
-            <div className="flex items-center gap-2">
-              <Switch checked={!!editForm.is_active} onCheckedChange={v => setEditForm({ ...editForm, is_active: v })} />
-              <span className="text-sm text-muted-foreground">Active</span>
-            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={editForm.is_active} onChange={e => setEditForm({ ...editForm, is_active: e.target.checked })} className="w-4 h-4 accent-teal-600 rounded" />
+              <span className="text-sm text-gray-600">Active</span>
+            </label>
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">

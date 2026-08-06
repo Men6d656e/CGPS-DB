@@ -1,17 +1,12 @@
 """
 FastAPI Routers — All API endpoints
-Fixes applied:
-  - Rate limiting on /auth/login (5 requests/minute per IP)
-  - All read endpoints now require authentication (staff or admin)
-  - Refresh token endpoint added
-  - Logout invalidates refresh token
-  - Monthly collections endpoint for dashboard chart
-  - Invoice delete endpoint added
-  - Payments: delete/void endpoint added
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.config import settings
 
@@ -19,31 +14,17 @@ from app.database import get_db
 from app import crud, schemas
 from app.auth import (
     create_access_token, create_refresh_token, decode_token, revoke_token,
-    get_current_user, verify_password, require_admin, require_staff_or_admin,
+    get_current_user, verify_password,
 )
-from app.models import User, UserRole
-from app.ratelimit import limiter  # shared instance (also attached to app.state)
+from app.models import User
+
+# Shared limiter — same instance as in main.py (accessed via app.state.limiter)
+limiter = Limiter(key_func=get_remote_address)
 
 
 # ─── Auth Router ───────────────────────────────────────────────────────────────
 
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-
-@auth_router.post("/register", response_model=schemas.UserOut, status_code=201)
-async def register(
-    data: schemas.UserCreate,
-    db: AsyncSession = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    """Register a new user — admin only."""
-    existing = await crud.get_user_by_username(db, data.username)
-    if existing:
-        raise HTTPException(status_code=409, detail="Username already taken")
-    existing_email = await crud.get_user_by_email(db, data.email)
-    if existing_email:
-        raise HTTPException(status_code=409, detail="Email already registered")
-    return await crud.create_user(db, data)
 
 
 @auth_router.post("/login", response_model=schemas.TokenPair)
@@ -52,7 +33,6 @@ async def login(request: Request, response: Response, data: schemas.LoginRequest
     """Login — rate limited to 5 attempts per minute per IP."""
     user = await crud.get_user_by_username(db, data.username)
     if not user or not user.is_active or not verify_password(data.password, user.hashed_password):
-        # Unified error — don't reveal whether username exists
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password",
@@ -107,52 +87,20 @@ async def me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-# ─── User Management (admin only) ─────────────────────────────────────────────
-
-users_router = APIRouter(prefix="/users", tags=["User Management"])
-
-
-@users_router.get("/", response_model=list[schemas.UserOut])
-async def list_users(
-    skip: int = 0,
-    limit: int = 100,
-    db: AsyncSession = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    return await crud.get_users(db, skip=skip, limit=limit)
-
-
-@users_router.patch("/{user_id}/role", response_model=schemas.UserOut)
-async def change_user_role(
-    user_id: int,
-    data: schemas.UserRoleUpdate,
-    db: AsyncSession = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    user = await crud.update_user_role(db, user_id, data.role)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-
-@users_router.patch("/{user_id}/password", status_code=204)
-async def change_password(
-    user_id: int,
-    data: schemas.PasswordChange,
+@auth_router.patch("/me/profile", response_model=schemas.UserOut)
+async def update_my_profile(
+    data: schemas.UserUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Allow a user to change their own password (or admin to reset any)."""
-    if current_user.id != user_id and current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Cannot change another user's password")
-    target = await crud.get_user_by_id(db, user_id)
-    if not target:
-        raise HTTPException(status_code=404, detail="User not found")
-    # Verify old password unless admin is resetting
-    if current_user.id == user_id:
-        if not verify_password(data.current_password, target.hashed_password):
-            raise HTTPException(status_code=400, detail="Current password is incorrect")
-    await crud.update_user_password(db, user_id, data.new_password)
+    """Update own profile (full_name, email)."""
+    try:
+        user = await crud.update_user_profile(db, current_user.id, data)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return user
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 
 # ─── Students Router ──────────────────────────────────────────────────────────
@@ -167,7 +115,7 @@ async def list_students(
     status: str = Query(None, description="Filter by status: active, withdrawn, graduated"),
     search: str = Query(None, description="Search by name or class"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),
+    current_user: User = Depends(get_current_user),
 ):
     try:
         return await crud.get_students(db, skip=skip, limit=limit, status=status, search=search)
@@ -179,7 +127,7 @@ async def list_students(
 async def create_student(
     data: schemas.StudentCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     try:
         return await crud.create_student(db, data)
@@ -191,7 +139,7 @@ async def create_student(
 async def get_student(
     student_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),   # ← now requires auth
+    current_user: User = Depends(get_current_user),
 ):
     student = await crud.get_student(db, student_id)
     if not student:
@@ -204,7 +152,7 @@ async def update_student(
     student_id: int,
     data: schemas.StudentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     try:
         student = await crud.update_student(db, student_id, data)
@@ -219,7 +167,7 @@ async def update_student(
 async def delete_student(
     student_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     student = await crud.delete_student(db, student_id)
     if not student:
@@ -230,7 +178,7 @@ async def delete_student(
 async def get_siblings(
     student_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),
+    current_user: User = Depends(get_current_user),
 ):
     return await crud.get_siblings(db, student_id)
 
@@ -240,7 +188,7 @@ async def link_parent(
     student_id: int,
     data: schemas.LinkParentToStudent,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     student = await crud.get_student(db, student_id)
     if not student:
@@ -259,7 +207,7 @@ async def unlink_parent(
     student_id: int,
     parent_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     rel = await crud.unlink_parent_from_student(db, student_id, parent_id)
     if not rel:
@@ -277,7 +225,7 @@ async def list_parents(
     limit: int = Query(50, le=200),
     search: str = Query(None, description="Search by guardian name, CNIC, or phone number"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),
+    current_user: User = Depends(get_current_user),
 ):
     return await crud.get_parents(db, skip=skip, limit=limit, search=search)
 
@@ -286,7 +234,7 @@ async def list_parents(
 async def create_parent(
     data: schemas.ParentCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     try:
         return await crud.create_parent(db, data)
@@ -298,7 +246,7 @@ async def create_parent(
 async def get_parent(
     parent_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),   # ← now requires auth
+    current_user: User = Depends(get_current_user),
 ):
     parent = await crud.get_parent(db, parent_id)
     if not parent:
@@ -311,7 +259,7 @@ async def update_parent(
     parent_id: int,
     data: schemas.ParentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     try:
         parent = await crud.update_parent(db, parent_id, data)
@@ -326,7 +274,7 @@ async def update_parent(
 async def delete_parent(
     parent_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     """Delete a parent (only if not linked to any active students)."""
     parent = await crud.delete_parent(db, parent_id)
@@ -346,7 +294,7 @@ async def list_teachers(
     status: str = Query(None, description="Filter by status: active, inactive, resigned"),
     search: str = Query(None, description="Search by name, subject, phone, or email"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),
+    current_user: User = Depends(get_current_user),
 ):
     try:
         return await crud.get_teachers(db, skip=skip, limit=limit, status=status, search=search)
@@ -358,7 +306,7 @@ async def list_teachers(
 async def create_teacher(
     data: schemas.TeacherCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     return await crud.create_teacher(db, data)
 
@@ -367,7 +315,7 @@ async def create_teacher(
 async def get_teacher(
     teacher_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),
+    current_user: User = Depends(get_current_user),
 ):
     teacher = await crud.get_teacher(db, teacher_id)
     if not teacher:
@@ -380,7 +328,7 @@ async def update_teacher(
     teacher_id: int,
     data: schemas.TeacherUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     teacher = await crud.update_teacher(db, teacher_id, data)
     if not teacher:
@@ -392,7 +340,7 @@ async def update_teacher(
 async def delete_teacher(
     teacher_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     teacher = await crud.delete_teacher(db, teacher_id)
     if not teacher:
@@ -407,7 +355,7 @@ fees_router = APIRouter(prefix="/fees", tags=["Fee Types"])
 @fees_router.get("/", response_model=list[schemas.FeeTypeOut])
 async def list_fee_types(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),   # ← now requires auth
+    current_user: User = Depends(get_current_user),
 ):
     return await crud.get_fee_types(db)
 
@@ -416,7 +364,7 @@ async def list_fee_types(
 async def create_fee_type(
     data: schemas.FeeTypeCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     try:
         return await crud.create_fee_type(db, data)
@@ -429,7 +377,7 @@ async def update_fee_type(
     fee_type_id: int,
     data: schemas.FeeTypeUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     fee = await crud.update_fee_type(db, fee_type_id, data)
     if not fee:
@@ -442,7 +390,7 @@ async def add_class_override(
     fee_type_id: int,
     data: schemas.FeeClassOverrideCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     fee = await crud.get_fee_type(db, fee_type_id)
     if not fee:
@@ -477,7 +425,7 @@ async def list_invoices(
     skip: int = 0,
     limit: int = Query(50, le=200),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),   # ← now requires auth
+    current_user: User = Depends(get_current_user),
 ):
     try:
         invoices = await crud.get_invoices(db, student_id=student_id, status=status, skip=skip, limit=limit)
@@ -486,7 +434,7 @@ async def list_invoices(
     result = []
     for inv in invoices:
         inv_dict = schemas.InvoiceOut.model_validate(inv).model_dump()
-        financials = crud.attach_invoice_financials(inv)   # now public name
+        financials = crud.attach_invoice_financials(inv)
         inv_dict.update(financials)
         result.append(inv_dict)
     return result
@@ -496,18 +444,24 @@ async def list_invoices(
 async def create_invoice(
     data: schemas.InvoiceCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     student = await crud.get_student(db, data.student_id)
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+    # Proactive duplicate check
+    existing = await crud.get_invoice_by_student_month(db, data.student_id, data.billing_month)
+    if existing:
+        raise HTTPException(status_code=409, detail="Invoice for this student and month already exists")
     try:
         invoice = await crud.create_invoice(db, data)
         inv_dict = schemas.InvoiceOut.model_validate(invoice).model_dump()
         financials = crud.attach_invoice_financials(invoice)
         inv_dict.update(financials)
         return inv_dict
-    except Exception:
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except IntegrityError:
         raise HTTPException(status_code=409, detail="Invoice for this student and month already exists")
 
 
@@ -515,7 +469,7 @@ async def create_invoice(
 async def get_invoice(
     invoice_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),
+    current_user: User = Depends(get_current_user),
 ):
     invoice = await crud.get_invoice(db, invoice_id)
     if not invoice:
@@ -531,7 +485,7 @@ async def update_invoice_status(
     invoice_id: int,
     data: schemas.InvoiceStatusUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     invoice = await crud.update_invoice_status(db, invoice_id, data.status)
     if not invoice:
@@ -543,7 +497,7 @@ async def update_invoice_status(
 async def delete_invoice(
     invoice_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     """Delete an invoice (blocked while it has non-voided payments)."""
     try:
@@ -565,7 +519,7 @@ async def list_payments(
     skip: int = 0,
     limit: int = Query(50, le=200),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),   # ← now requires auth
+    current_user: User = Depends(get_current_user),
 ):
     return await crud.get_payments(db, invoice_id=invoice_id, skip=skip, limit=limit)
 
@@ -574,7 +528,7 @@ async def list_payments(
 async def create_payment(
     data: schemas.PaymentCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     invoice = await crud.get_invoice(db, data.invoice_id)
     if not invoice:
@@ -589,7 +543,7 @@ async def create_payment(
 async def delete_payment(
     payment_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
 ):
     """Void a payment (soft delete — recalculates invoice status automatically)."""
     payment = await crud.delete_payment(db, payment_id)
@@ -605,7 +559,7 @@ dashboard_router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 @dashboard_router.get("/stats", response_model=schemas.DashboardStats)
 async def get_dashboard_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),   # ← now requires auth
+    current_user: User = Depends(get_current_user),
 ):
     return await crud.get_dashboard_stats(db)
 
@@ -614,7 +568,7 @@ async def get_dashboard_stats(
 async def get_monthly_collections(
     months: int = Query(6, ge=1, le=24, description="Number of past months to return"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_staff_or_admin),
+    current_user: User = Depends(get_current_user),
 ):
     """Real monthly collections data for the dashboard chart."""
     return await crud.get_monthly_collections(db, months=months)

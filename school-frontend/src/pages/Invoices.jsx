@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, FileText, Eye, Trash2, Printer } from 'lucide-react'
-import { toast } from 'sonner'
-import { useAuth } from '../contexts/AuthContext'
+import { Plus, FileText, Eye, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { invoicesApi, studentsApi, feesApi } from '../api'
 import {
   SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, StatusBadge,
@@ -16,8 +15,6 @@ import { TableRow, TableCell } from '../components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 export default function Invoices() {
-  const { user } = useAuth()
-  const isAdmin = user?.role === 'admin'
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('')
@@ -50,7 +47,6 @@ export default function Invoices() {
   }
 
   useEffect(() => { setSkip(0) }, [statusFilter])
-  
   useEffect(() => { load() }, [statusFilter, skip])
 
   const loadFormData = async () => {
@@ -60,7 +56,6 @@ export default function Invoices() {
     ])
     setStudents(sRes.data)
     setFeeTypes(fRes.data.filter(f => f.is_active))
-    // Pre-populate line items with active fee types
     setForm(f => ({
       ...f,
       line_items: fRes.data.filter(ft => ft.is_active).map(ft => ({
@@ -79,12 +74,11 @@ export default function Invoices() {
   const handleCreate = async () => {
     setSaving(true)
     try {
+      if (!form.student_id) { toast.error('Please select a student'); setSaving(false); return }
+      if (!form.due_date) { toast.error('Please select a due date'); setSaving(false); return }
+      if (!form.billing_month) { toast.error('Please select a billing month'); setSaving(false); return }
       const enabledItems = form.line_items.filter(i => i.enabled)
-      if (enabledItems.length === 0) {
-        toast.error('Add at least one fee item')
-        setSaving(false)
-        return
-      }
+      if (enabledItems.length === 0) { toast.error('Add at least one fee item'); setSaving(false); return }
       await invoicesApi.create({
         student_id: parseInt(form.student_id),
         billing_month: form.billing_month,
@@ -240,28 +234,24 @@ export default function Invoices() {
         title="Invoices & Billing"
         description="Manage student fee invoices"
         action={
-          isAdmin && (
-            <Button onClick={openCreate}>
-              <Plus size={16} /> Create Invoice
-            </Button>
-          )
+          <button onClick={openCreate} className="btn-primary">
+            <Plus size={16} /> Create Invoice
+          </button>
         }
       />
 
       {/* Summary cards */}
       {invoices.length > 0 && (
-        <div className="grid grid-cols-3 gap-4 mb-5">
+        <div className="grid grid-cols-3 gap-4 mb-6">
           {[
-            { label: 'Total Billed', value: grandTotal, color: 'text-foreground' },
-            { label: 'Total Collected', value: grandPaid, color: 'text-success' },
-            { label: 'Outstanding', value: grandBalance, color: 'text-warning' },
+            { label: 'Total Billed', value: grandTotal, color: 'text-gray-700' },
+            { label: 'Total Collected', value: grandPaid, color: 'text-emerald-600' },
+            { label: 'Outstanding', value: grandBalance, color: 'text-amber-500' },
           ].map(({ label, value, color }) => (
-            <Card key={label}>
-              <CardContent className="px-4 py-3">
-                <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-                <p className={`font-mono font-semibold ${color}`}>PKR {value.toLocaleString()}</p>
-              </CardContent>
-            </Card>
+            <div key={label} className="card px-4 py-3">
+              <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+              <p className={`font-mono font-semibold ${color}`}>PKR {value.toLocaleString()}</p>
+            </div>
           ))}
         </div>
       )}
@@ -292,50 +282,41 @@ export default function Invoices() {
             <EmptyState icon={FileText} title="No invoices found"
               description="Create an invoice to start billing"
               action={
-                isAdmin && (
-                  <Button onClick={openCreate}>
-                    <Plus size={15} />Create Invoice
-                  </Button>
-                )
+                <button onClick={openCreate} className="btn-primary">
+                  <Plus size={15} />Create Invoice
+                </button>
               }
             />
           )}
         >
           {invoices.map(inv => (
-            <TableRow key={inv.id}>
-              <TableCell className="font-mono text-xs text-muted-foreground">#{String(inv.id).padStart(4, '0')}</TableCell>
-              <TableCell className="text-foreground">
+            <tr key={inv.id} className="table-row">
+              <td className="td font-mono text-xs text-gray-500">#{String(inv.id).padStart(4, '0')}</td>
+              <td className="td text-gray-700 font-medium">
                 {inv.student ? `${inv.student.first_name} ${inv.student.last_name}` : `Student #${inv.student_id}`}
-              </TableCell>
-              <TableCell className="font-mono text-xs">{inv.billing_month}</TableCell>
-              <TableCell className="font-mono text-sm">PKR {totalForInvoice(inv).toLocaleString()}</TableCell>
-              <TableCell className="font-mono text-sm text-success">PKR {paidForInvoice(inv).toLocaleString()}</TableCell>
-              <TableCell className="font-mono text-sm text-warning">PKR {balanceForInvoice(inv).toLocaleString()}</TableCell>
-              <TableCell className="text-muted-foreground text-xs">{inv.due_date}</TableCell>
-              <TableCell><StatusBadge status={inv.status} /></TableCell>
-              <TableCell>
+              </td>
+              <td className="td font-mono text-xs text-gray-500">{inv.billing_month}</td>
+              <td className="td font-mono text-sm font-medium">PKR {totalForInvoice(inv).toLocaleString()}</td>
+              <td className="td font-mono text-sm text-emerald-600">PKR {paidForInvoice(inv).toLocaleString()}</td>
+              <td className="td font-mono text-sm text-amber-500">PKR {balanceForInvoice(inv).toLocaleString()}</td>
+              <td className="td text-gray-500 text-xs">{inv.due_date}</td>
+              <td className="td"><StatusBadge status={inv.status} /></td>
+              <td className="td">
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(inv); setDetailOpen(true) }} title="View" aria-label="View">
+                  <button onClick={() => { setSelected(inv); setDetailOpen(true) }}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600" title="View">
                     <Eye size={14} />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handlePrint(inv)} title="Print" aria-label="Print">
-                    <Printer size={14} />
-                  </Button>
-                  {isAdmin && inv.status !== 'paid' && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOverdueClick(inv)}
-                      className="h-7 px-2 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    >
+                  </button>
+                  {inv.status !== 'paid' && (
+                    <button onClick={() => handleOverdueClick(inv)}
+                      className="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg transition-colors border border-red-200/60 font-medium">
                       Overdue
                     </Button>
                   )}
-                  {isAdmin && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteClick(inv)} title="Delete" aria-label="Delete">
-                      <Trash2 size={16} />
-                    </Button>
-                  )}
+                  <button onClick={() => handleDeleteClick(inv)}
+                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-500" title="Delete">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </TableCell>
             </TableRow>
@@ -344,12 +325,12 @@ export default function Invoices() {
       )}
 
       {!loading && (
-        <Pagination 
-          skip={skip} 
-          limit={limit} 
-          totalItemsInCurrentPage={invoices.length} 
-          onNext={() => setSkip(skip + limit)} 
-          onPrev={() => setSkip(Math.max(0, skip - limit))} 
+        <Pagination
+          skip={skip}
+          limit={limit}
+          totalItemsInCurrentPage={invoices.length}
+          onNext={() => setSkip(skip + limit)}
+          onPrev={() => setSkip(Math.max(0, skip - limit))}
         />
       )}
 
@@ -392,20 +373,20 @@ export default function Invoices() {
               {form.line_items.map((item, i) => {
                 const ft = feeTypes.find(f => f.id === item.fee_type_id)
                 return (
-                  <div key={i} className="flex items-center gap-3 bg-muted/50 rounded-md px-4 py-2.5">
-                    <Switch
-                      checked={item.enabled}
-                      onCheckedChange={(checked) => {
+                  <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
+                    <input type="checkbox" checked={item.enabled}
+                      onChange={e => {
                         const items = [...form.line_items]
                         items[i] = { ...items[i], enabled: checked }
                         setForm({ ...form, line_items: items })
                       }}
+                      className="w-4 h-4 accent-teal-600 rounded"
                     />
-                    <span className="text-sm text-foreground flex-1">{ft?.fee_name}</span>
-                    <span className="text-xs text-muted-foreground">PKR</span>
-                    <Input
+                    <span className="text-sm text-gray-600 flex-1">{ft?.fee_name}</span>
+                    <span className="text-xs text-gray-400">PKR</span>
+                    <input
                       type="number"
-                      className="w-24"
+                      className="w-24 bg-white border border-gray-200 rounded-lg px-2 py-1 text-sm font-mono text-gray-700 outline-none focus:border-teal-400 focus:ring-2 focus:ring-teal-50 transition-all"
                       value={item.amount}
                       onChange={e => {
                         const items = [...form.line_items]
@@ -417,9 +398,9 @@ export default function Invoices() {
                 )
               })}
             </div>
-            <div className="flex justify-between items-center mt-3 px-4 py-2 bg-muted/30 rounded-md">
-              <span className="text-sm text-muted-foreground">Total</span>
-              <span className="font-mono font-semibold text-foreground">
+            <div className="flex justify-between items-center mt-3 px-4 py-2.5 bg-gray-50 rounded-xl">
+              <span className="text-sm text-gray-500 font-medium">Total</span>
+              <span className="font-mono font-semibold text-gray-700">
                 PKR {form.line_items.filter(i => i.enabled).reduce((a, i) => a + (parseFloat(i.amount) || 0), 0).toLocaleString()}
               </span>
             </div>
@@ -444,9 +425,9 @@ export default function Invoices() {
                 ['Due Date', selected.due_date],
                 ['Status', selected.status],
               ].map(([k, v]) => (
-                <div key={k} className="bg-muted/40 rounded-md px-4 py-3">
-                  <p className="text-xs text-muted-foreground mb-0.5">{k}</p>
-                  <p className="text-foreground font-medium capitalize">{v}</p>
+                <div key={k} className="bg-gray-50 rounded-xl px-4 py-3">
+                  <p className="text-xs text-gray-400 mb-0.5">{k}</p>
+                  <p className="text-gray-700 font-medium capitalize">{v}</p>
                 </div>
               ))}
             </div>
@@ -456,20 +437,20 @@ export default function Invoices() {
               <p className="text-sm font-medium text-muted-foreground mb-2">Fee Breakdown</p>
               <div className="space-y-1.5">
                 {selected.line_items?.map(li => (
-                  <div key={li.id} className="flex justify-between items-center py-2 border-b border-border last:border-0">
-                    <span className="text-sm text-muted-foreground">{li.fee_type?.fee_name || `Fee #${li.fee_type_id}`}</span>
-                    <span className="font-mono text-sm text-foreground">PKR {Number(li.amount).toLocaleString()}</span>
+                  <div key={li.id} className="flex justify-between items-center py-2.5 border-b border-gray-100 last:border-0">
+                    <span className="text-sm text-gray-500">{li.fee_type?.fee_name || `Fee #${li.fee_type_id}`}</span>
+                    <span className="font-mono text-sm text-gray-700 font-medium">PKR {Number(li.amount).toLocaleString()}</span>
                   </div>
                 ))}
                 <div className="flex justify-between items-center pt-2 font-semibold">
-                  <span className="text-sm text-foreground">Total</span>
-                  <span className="font-mono text-foreground">PKR {Number(selected.total_amount || 0).toLocaleString()}</span>
+                  <span className="text-sm text-gray-600">Total</span>
+                  <span className="font-mono text-gray-800">PKR {Number(selected.total_amount || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center text-success">
+                <div className="flex justify-between items-center text-emerald-600">
                   <span className="text-sm">Paid</span>
-                  <span className="font-mono text-sm">PKR {Number(selected.amount_paid || 0).toLocaleString()}</span>
+                  <span className="font-mono text-sm font-medium">PKR {Number(selected.amount_paid || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center text-warning">
+                <div className="flex justify-between items-center text-amber-500">
                   <span className="text-sm font-semibold">Balance</span>
                   <span className="font-mono font-semibold">PKR {Number(selected.balance_due || 0).toLocaleString()}</span>
                 </div>

@@ -11,8 +11,8 @@ import { TableRow, TableCell } from '../components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const ROLE_OPTIONS = [
-  { value: 'staff', label: 'Staff', icon: ShieldOff, color: 'text-muted-foreground bg-muted/60 border-border' },
-  { value: 'admin', label: 'Admin', icon: Shield, color: 'text-accent-brand bg-accent-brand/10 border-accent-brand/20' },
+  { value: 'staff', label: 'Staff', icon: ShieldOff, color: 'text-gray-500 bg-gray-100 border-gray-200' },
+  { value: 'admin', label: 'Admin', icon: Shield, color: 'text-teal-600 bg-teal-50 border-teal-200' },
 ]
 
 export default function Users() {
@@ -104,16 +104,16 @@ export default function Users() {
     } finally { setSaving(false) }
   }
 
-  // ─── Role guard: only admins can access this page ───────────────────────
+  const { user } = useAuth()
   if (user?.role !== 'admin') {
     return (
       <div className="animate-fade-in">
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-md bg-destructive/10 flex items-center justify-center mb-5 border border-destructive/20">
-            <ShieldX size={28} className="text-destructive" />
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5 stat-card-icon">
+            <ShieldX size={28} className="text-red-400" />
           </div>
-          <p className="font-display text-lg font-semibold text-foreground mb-1">Access Denied</p>
-          <p className="text-sm text-muted-foreground max-w-sm">
+          <p className="text-lg font-semibold text-gray-700 mb-1">Access Denied</p>
+          <p className="text-sm text-gray-400 max-w-sm">
             Only administrators can manage user accounts. If you need access, contact your system administrator.
           </p>
         </div>
@@ -133,11 +133,10 @@ export default function Users() {
         }
       />
 
-      {/* Search */}
       <div className="relative mb-5 max-w-sm">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-9"
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          className="input pl-9"
           placeholder="Search by username, email, role..."
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -158,13 +157,13 @@ export default function Users() {
             const roleConfig = ROLE_OPTIONS.find(r => r.value === u.role) || ROLE_OPTIONS[0]
             const RoleIcon = roleConfig.icon
             return (
-              <TableRow key={u.id}>
-                <TableCell>
-                  <span className="font-medium text-foreground">@{u.username}</span>
-                </TableCell>
-                <TableCell className="text-muted-foreground">{u.full_name || '—'}</TableCell>
-                <TableCell className="text-muted-foreground text-xs">{u.email}</TableCell>
-                <TableCell>
+              <tr key={u.id} className="table-row">
+                <td className="td">
+                  <span className="font-medium text-gray-700">@{u.username}</span>
+                </td>
+                <td className="td text-gray-500">{u.full_name || '—'}</td>
+                <td className="td text-gray-500 text-xs">{u.email}</td>
+                <td className="td">
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${roleConfig.color}`}>
                       <RoleIcon size={10} />
@@ -175,6 +174,7 @@ export default function Users() {
                       size="icon"
                       className="h-7 w-7 text-muted-foreground hover:text-foreground"
                       onClick={() => handleRoleToggle(u)}
+                      className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
                       title={`Switch to ${u.role === 'admin' ? 'staff' : 'admin'}`}
                     >
                       <ShieldOff size={12} />
@@ -184,25 +184,21 @@ export default function Users() {
                 <TableCell>
                   <Badge variant="outline" className={u.is_active ? STATUS_STYLES.active : STATUS_STYLES.inactive}>
                     {u.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-xs text-muted-foreground">
+                  </span>
+                </td>
+                <td className="td text-xs text-gray-400">
                   {new Date(u.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => openResetPwd(u)}
-                      title="Reset Password"
-                    >
-                      <Key size={14} />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
+                </td>
+                <td className="td">
+                  <button
+                    onClick={() => openResetPwd(u)}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                    title="Reset Password"
+                  >
+                    <Key size={14} />
+                  </button>
+                </td>
+              </tr>
             )
           })}
         </Table>
@@ -228,15 +224,14 @@ export default function Users() {
                 placeholder="John Doe" />
             </Field>
             <Field label="Role">
-              <Select value={form.role} onValueChange={v => setForm({ ...form, role: v })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <select className="input appearance-none pr-9 cursor-pointer" value={form.role}
+                  onChange={e => setForm({ ...form, role: e.target.value })}>
+                  <option value="staff">Staff</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
             </Field>
           </div>
           <Field label="Password">
@@ -256,8 +251,8 @@ export default function Users() {
       {/* Reset Password Modal */}
       <Modal open={resetPwdOpen} onClose={() => setResetPwdOpen(false)} title={`Reset Password — ${selectedUser?.username}`} maxWidth="max-w-sm">
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Set a new password for <span className="text-foreground font-medium">@{selectedUser?.username}</span>
+          <p className="text-sm text-gray-500">
+            Set a new password for <span className="text-gray-700 font-medium">@{selectedUser?.username}</span>
           </p>
           <Field label="New Password">
             <Input type="password" value={resetPwdForm.new_password}

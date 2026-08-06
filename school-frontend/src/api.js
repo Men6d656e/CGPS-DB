@@ -124,6 +124,7 @@ export const usersApi = {
   list: (params) => api.get('/users', { params }),
   create: (data) => api.post('/auth/register', data),
   updateRole: (id, role) => api.patch(`/users/${id}/role`, { role }),
+  updateProfile: (data) => api.patch('/users/me/profile', data),
   resetPassword: (id, newPassword) => api.patch(`/users/${id}/password`, { current_password: '', new_password: newPassword }),
 }
 

@@ -9,7 +9,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
-from app.models import StudentStatus, InvoiceStatus, Relationship, UserRole, TeacherStatus
+from app.models import StudentStatus, InvoiceStatus, Relationship, TeacherStatus
 from app import models
 from app.encryption import decrypt_field
 
@@ -337,12 +337,10 @@ class MonthlyCollection(BaseModel):
 
 # ─── Authentication ────────────────────────────────────────────────────────────
 
-class UserCreate(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
-    email: str = Field(..., max_length=120)
-    password: str = Field(..., min_length=8, max_length=128)   # raised minimum to 8
+class UserUpdate(BaseModel):
+    """Update own profile — full_name and/or email."""
     full_name: Optional[str] = None
-    role: UserRole = UserRole.STAFF
+    email: Optional[str] = None
 
 
 class UserOut(OrmBase):
@@ -350,19 +348,8 @@ class UserOut(OrmBase):
     username: str
     email: str
     full_name: Optional[str]
-    role: UserRole
     is_active: bool
-    is_superuser: bool
     created_at: datetime
-
-
-class UserRoleUpdate(BaseModel):
-    role: UserRole
-
-
-class PasswordChange(BaseModel):
-    current_password: str
-    new_password: str = Field(..., min_length=8, max_length=128)
 
 
 class Token(BaseModel):
