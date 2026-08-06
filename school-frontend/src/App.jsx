@@ -8,6 +8,8 @@ import { useState, lazy, Suspense } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import { PageLoader } from './components/UI'
 import ThemeToggle from './components/ThemeToggle'
+import { Button } from './components/ui/button'
+import { Separator } from './components/ui/separator'
 
 // Lazy-loaded routes — split the bundle per page (SPEC2 Phase 6)
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -39,7 +41,7 @@ export default function App() {
   // ─── Loading screen ──────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-950">
+      <div className="h-screen flex items-center justify-center bg-background">
         <PageLoader />
       </div>
     )
@@ -65,27 +67,28 @@ export default function App() {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-slate-900/95 backdrop-blur-xl
-        border-r border-slate-800/60 flex flex-col
+        fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col
         transform transition-transform duration-300 ease-in-out
         lg:relative lg:translate-x-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800/60">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/30">
+        <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/30">
             <GraduationCap size={20} className="text-white" />
           </div>
           <div>
-            <p className="font-display font-600 text-slate-100 text-sm leading-tight">School</p>
-            <p className="text-xs text-slate-500 leading-tight">Management System</p>
+            <p className="font-display font-semibold text-foreground text-sm leading-tight">School</p>
+            <p className="text-xs text-muted-foreground leading-tight">Management System</p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setSidebarOpen(false)}
-            className="ml-auto lg:hidden text-slate-500 hover:text-slate-300"
+            className="ml-auto lg:hidden h-8 w-8 text-muted-foreground"
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         {/* Nav */}
@@ -99,11 +102,11 @@ export default function App() {
               end={to === '/'}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) => `
-                flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
-                transition-all duration-150 group
+                flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
+                transition-colors duration-150 group
                 ${isActive
-                  ? 'bg-brand-500/15 text-brand-400 border border-brand-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 }
               `}
             >
@@ -114,32 +117,33 @@ export default function App() {
         </nav>
 
         {/* User info & Logout */}
-        <div className="border-t border-slate-800/60 px-4 py-4 space-y-3">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded-xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center flex-shrink-0">
-              <UserIcon size={15} className="text-brand-400" />
+        <div className="px-4 py-4 space-y-3">
+          <Separator />
+          <div className="flex items-center gap-3 px-2 pt-2">
+            <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+              <UserIcon size={15} className="text-muted-foreground" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-slate-200 truncate">{user?.full_name || user?.username}</p>
-              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+              <p className="text-sm font-medium text-foreground truncate">{user?.full_name || user?.username}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
               <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                 user?.role === 'admin'
-                  ? 'text-brand-400 bg-brand-500/10 border border-brand-500/20'
-                  : 'text-slate-400 bg-slate-800/60 border border-slate-700/60'
+                  ? 'text-foreground bg-accent'
+                  : 'text-muted-foreground bg-muted'
               }`}>
                 <Shield size={10} />
                 {user?.role === 'admin' ? 'Admin' : 'Staff'}
               </span>
             </div>
           </div>
-          <button
+          <Button
+            variant="ghost"
             onClick={logout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium
-                       text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+            className="flex items-center gap-3 w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
           >
             <LogOut size={16} className="flex-shrink-0" />
             Sign Out
-          </button>
+          </Button>
         </div>
       </aside>
 
@@ -154,24 +158,26 @@ export default function App() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="flex items-center gap-4 px-6 py-4 border-b border-slate-800/60 bg-slate-900/50 backdrop-blur-sm">
-          <button
+        <header className="flex items-center gap-4 px-6 py-4 border-b border-border bg-background/80 backdrop-blur-sm">
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setSidebarOpen(true)}
-            className="lg:hidden text-slate-400 hover:text-slate-200"
+            className="lg:hidden h-9 w-9 text-muted-foreground"
           >
             <Menu size={20} />
-          </button>
+          </Button>
           <div>
-            <h1 className="font-display text-lg font-semibold text-slate-100">
+            <h1 className="font-display text-lg font-semibold text-foreground">
               {currentPage?.label || 'School MS'}
             </h1>
-            <p className="text-xs text-slate-500 hidden sm:block">
+            <p className="text-xs text-muted-foreground hidden sm:block">
               {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
           <div className="flex-1" />
           <ThemeToggle />
-          <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500">
+          <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             {user?.username}
           </div>
