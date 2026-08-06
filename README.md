@@ -100,8 +100,15 @@ behzad_stuck/
 │   └── SPEC1.md                     # Phase improvement plan
 │
 ├── docs/                            # Documentation
-│   └── (phase docs will be added)
+│   ├── phase1-security-fixes.md     # Phase 1: Security & core fixes
+│   ├── phase2-user-management.md    # Phase 2: User management
+│   ├── phase3-dashboard-improvements.md  # Phase 3: Dashboard
+│   ├── phase4-frontend-polish.md    # Phase 4: Frontend polish
+│   ├── phase5-testing-documentation.md   # Phase 5: Testing
+│   ├── phase6-advanced-features.md  # Phase 6: Advanced features
+│   └── after-spec1-automation-script.md  # Makefile automation docs
 │
+├── Makefile                         # Development automation script
 ├── README.md                        # This file
 ├── PROJECT_OVERVIEW2.md             # Comprehensive codebase analysis
 └── ProjectOverview.md               # Original project overview
@@ -234,10 +241,46 @@ All endpoints are prefixed with `/api/v1`.
 
 ## 📚 Documentation
 
+### Core Documentation
 - [PROJECT_OVERVIEW2.md](PROJECT_OVERVIEW2.md) — Comprehensive codebase analysis
 - [ProjectOverview.md](ProjectOverview.md) — Original project overview
-- [SPEC/SPEC1.md](SPEC/SPEC1.md) — Phased improvement plan
-- [docs/](docs/) — Phase documentation (updated as phases complete)
+- [SPEC/SPEC1.md](SPEC/SPEC1.md) — Phased improvement plan (6 phases)
+
+### Phase Documentation
+Each phase includes detailed implementation notes, testing results, and commit history:
+
+| Phase | File | Description |
+|-------|------|-------------|
+| Phase 1 | [docs/phase1-security-fixes.md](docs/phase1-security-fixes.md) | Critical security & core fixes |
+| Phase 2 | [docs/phase2-user-management.md](docs/phase2-user-management.md) | User management system |
+| Phase 3 | [docs/phase3-dashboard-improvements.md](docs/phase3-dashboard-improvements.md) | Dashboard with real data |
+| Phase 4 | [docs/phase4-frontend-polish.md](docs/phase4-frontend-polish.md) | Frontend polish & error handling |
+| Phase 5 | [docs/phase5-testing-documentation.md](docs/phase5-testing-documentation.md) | Testing & documentation |
+| Phase 6 | [docs/phase6-advanced-features.md](docs/phase6-advanced-features.md) | Advanced features & dark mode |
+
+### Automation & Tools
+- [docs/after-spec1-automation-script.md](docs/after-spec1-automation-script.md) — Makefile automation script documentation
+
+---
+
+## 🤖 Automation Script
+
+After completing all SPEC1 phases, a **Makefile** was created for unified development workflow:
+
+```bash
+# Quick start
+make run-cgps-dev    # Start in development mode
+make status          # Check service status
+make stop-cgps       # Stop all services
+
+# Full workflow
+make test            # Run all tests
+make build           # Build for production
+make migrate         # Run database migrations
+make seed            # Seed admin user
+```
+
+See [docs/after-spec1-automation-script.md](docs/after-spec1-automation-script.md) for complete documentation.
 
 ---
 
