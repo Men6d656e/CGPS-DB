@@ -19,14 +19,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               position="top-right"
               toastOptions={{
                 style: {
-                  background: '#1e293b',
-                  color: '#f1f5f9',
-                  border: '1px solid #334155',
+                  background: 'var(--toast-bg)',
+                  color: 'var(--toast-fg)',
+                  border: '1px solid var(--toast-border)',
                   borderRadius: '12px',
                   fontSize: '14px',
                 },
-                success: { iconTheme: { primary: '#10b981', secondary: '#1e293b' } },
-                error: { iconTheme: { primary: '#ef4444', secondary: '#1e293b' } },
+                success: { iconTheme: { primary: '#10b981', secondary: 'var(--surface)' } },
+                error: { iconTheme: { primary: '#ef4444', secondary: 'var(--surface)' } },
               }}
             />
           </AuthProvider>

@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',  // toggle via <html class="dark"> (SPEC2 Phase 5)
   theme: {
     extend: {
       fontFamily: {

@@ -15,6 +15,12 @@ vi.mock('../contexts/AuthContext', () => ({
   }),
 }))
 
+// Mock the theme context (Login page renders a ThemeToggle)
+vi.mock('../contexts/ThemeContext', () => ({
+  ThemeProvider: ({ children }) => children,
+  useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn(), isDark: true }),
+}))
+
 describe('App', () => {
   it('renders login page when not authenticated', () => {
     render(

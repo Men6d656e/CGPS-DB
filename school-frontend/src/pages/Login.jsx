@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { GraduationCap, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
+import ThemeToggle from '../components/ThemeToggle'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -35,6 +36,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Theme toggle (top-right) */}
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
+
       {/* Decorative background gradients */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl" />
