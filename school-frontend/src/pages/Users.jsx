@@ -3,9 +3,11 @@ import { Plus, Users as UsersIcon, Shield, ShieldOff, Key, Search, ShieldX } fro
 import toast from 'react-hot-toast'
 import { usersApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { SectionHeader, Table, Modal, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
+import { SectionHeader, Table, Modal, Field, PageLoader, EmptyState, Spinner, STATUS_STYLES } from '../components/UI'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { Badge } from '../components/ui/badge'
+import { TableRow, TableCell } from '../components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const ROLE_OPTIONS = [
@@ -156,13 +158,13 @@ export default function Users() {
             const roleConfig = ROLE_OPTIONS.find(r => r.value === u.role) || ROLE_OPTIONS[0]
             const RoleIcon = roleConfig.icon
             return (
-              <tr key={u.id} className="table-row">
-                <td className="td">
+              <TableRow key={u.id}>
+                <TableCell>
                   <span className="font-medium text-slate-200">@{u.username}</span>
-                </td>
-                <td className="td text-slate-400">{u.full_name || '—'}</td>
-                <td className="td text-slate-400 text-xs">{u.email}</td>
-                <td className="td">
+                </TableCell>
+                <TableCell className="text-slate-400">{u.full_name || '—'}</TableCell>
+                <TableCell className="text-slate-400 text-xs">{u.email}</TableCell>
+                <TableCell>
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full border ${roleConfig.color}`}>
                       <RoleIcon size={10} />
@@ -178,16 +180,16 @@ export default function Users() {
                       <ShieldOff size={12} />
                     </Button>
                   </div>
-                </td>
-                <td className="td">
-                  <span className={`badge ${u.is_active ? 'badge-active' : 'badge-withdrawn'}`}>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={u.is_active ? STATUS_STYLES.active : STATUS_STYLES.inactive}>
                     {u.is_active ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="td text-xs text-slate-500">
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-xs text-slate-500">
                   {new Date(u.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
-                </td>
-                <td className="td">
+                </TableCell>
+                <TableCell>
                   <div className="flex items-center gap-1">
                     <Button
                       variant="ghost"
@@ -199,8 +201,8 @@ export default function Users() {
                       <Key size={14} />
                     </Button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )
           })}
         </Table>

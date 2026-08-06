@@ -6,11 +6,13 @@ import { teachersApi } from '../api'
 import { useDebouncedValue } from '../hooks/useDebounce'
 import {
   SectionHeader, Table, Modal, ConfirmModal, Pagination, Field,
-  PageLoader, EmptyState, Spinner
+  PageLoader, EmptyState, Spinner, STATUS_STYLES
 } from '../components/UI'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Textarea } from '../components/ui/textarea'
+import { Badge } from '../components/ui/badge'
+import { TableRow, TableCell } from '../components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const STATUS_OPTIONS = ['active', 'inactive', 'resigned']
@@ -117,12 +119,6 @@ export default function Teachers() {
     } catch { toast.error('Failed to delete') }
   }
 
-  const statusColors = {
-    active: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-    inactive: 'text-slate-400 bg-slate-800/60 border-slate-700/60',
-    resigned: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-  }
-
   return (
     <div className="animate-fade-in">
       <SectionHeader
@@ -191,9 +187,9 @@ export default function Teachers() {
           )}
         >
           {teachers.map(t => (
-            <tr key={t.id} className="table-row">
-              <td className="td font-medium text-slate-200">{t.first_name} {t.last_name}</td>
-              <td className="td text-slate-400">
+            <TableRow key={t.id}>
+              <TableCell className="font-medium text-slate-200">{t.first_name} {t.last_name}</TableCell>
+              <TableCell className="text-slate-400">
                 {t.subject ? (
                   <span className="inline-flex items-center gap-1.5 text-xs">
                     <Briefcase size={12} className="text-brand-400" />
@@ -202,27 +198,25 @@ export default function Teachers() {
                 ) : (
                   <span className="text-slate-600">—</span>
                 )}
-              </td>
-              <td className="td">
+              </TableCell>
+              <TableCell>
                 <a href={`tel:${t.phone}`} className="flex items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors">
                   <Phone size={13} />{t.phone}
                 </a>
-              </td>
-              <td className="td text-slate-400 text-xs max-w-[140px] truncate">
+              </TableCell>
+              <TableCell className="text-slate-400 text-xs max-w-[140px] truncate">
                 {t.qualification ? (
                   <span className="inline-flex items-center gap-1">
                     <GraduationCap size={12} className="text-slate-500" />
                     {t.qualification}
                   </span>
                 ) : '—'}
-              </td>
-              <td className="td text-slate-400 text-xs">{t.hire_date}</td>
-              <td className="td">
-                <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusColors[t.status] || statusColors.active}`}>
-                  {t.status}
-                </span>
-              </td>
-              <td className="td">
+              </TableCell>
+              <TableCell className="text-slate-400 text-xs">{t.hire_date}</TableCell>
+              <TableCell>
+                <Badge variant="outline" className={STATUS_STYLES[t.status] || STATUS_STYLES.active}>{t.status}</Badge>
+              </TableCell>
+              <TableCell>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(t); setDetailOpen(true) }} title="View">
                     <Eye size={14} />
@@ -244,8 +238,8 @@ export default function Teachers() {
                     </>
                   )}
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
         </Table>
       )}

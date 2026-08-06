@@ -3,10 +3,12 @@ import { Plus, DollarSign, Edit2, ChevronDown, ChevronUp, Trash2 } from 'lucide-
 import toast from 'react-hot-toast'
 import { feesApi } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner, ConfirmModal } from '../components/UI'
+import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner, ConfirmModal, STATUS_STYLES } from '../components/UI'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Switch } from '../components/ui/switch'
+import { Badge } from '../components/ui/badge'
+import { Card } from '../components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const CLASSES = ['Nursery','KG','1','2','3','4','5','6','7','8','9','10']
@@ -115,7 +117,7 @@ export default function Fees() {
         />) : (
         <div className="space-y-3">
           {fees.map(fee => (
-            <div key={fee.id} className="card overflow-hidden">
+            <Card key={fee.id} className="overflow-hidden">
               <div
                 className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-slate-800/30 transition-colors"
                 onClick={() => setExpanded(expanded === fee.id ? null : fee.id)}
@@ -135,7 +137,10 @@ export default function Fees() {
                     <p className="text-xs text-slate-500">default / month</p>
                   </div>
                   {isAdmin ? (
-                    <span 
+                    <Badge
+                      variant="outline"
+                      className={`${fee.is_active ? STATUS_STYLES.active : STATUS_STYLES.inactive} cursor-pointer`}
+                      title="Click to toggle status"
                       onClick={async (e) => {
                         e.stopPropagation();
                         try {
@@ -146,15 +151,13 @@ export default function Fees() {
                           toast.error('Failed to update status');
                         }
                       }}
-                      className={`badge ${fee.is_active ? 'badge-active' : 'badge-withdrawn'} cursor-pointer`}
-                      title="Click to toggle status"
                     >
                       {fee.is_active ? 'Active' : 'Inactive'}
-                    </span>
+                    </Badge>
                   ) : (
-                    <span className={`badge ${fee.is_active ? 'badge-active' : 'badge-withdrawn'}`}>
+                    <Badge variant="outline" className={fee.is_active ? STATUS_STYLES.active : STATUS_STYLES.inactive}>
                       {fee.is_active ? 'Active' : 'Inactive'}
-                    </span>
+                    </Badge>
                   )}
                   <div className="flex items-center gap-1">
                     {isAdmin && (
@@ -213,7 +216,7 @@ export default function Fees() {
                   )}
                 </div>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}

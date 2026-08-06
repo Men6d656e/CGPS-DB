@@ -8,6 +8,7 @@ import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, PageLoade
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Textarea } from '../components/ui/textarea'
+import { TableRow, TableCell } from '../components/ui/table'
 
 const formatCNIC = (value) => {
   const digits = value.replace(/\D/g, '').slice(0, 13)
@@ -159,17 +160,17 @@ export default function Parents() {
           )}
         >
           {parents.map(p => (
-            <tr key={p.id} className="table-row">
-              <td className="td font-medium text-slate-200">{p.guardian_name}</td>
-              <td className="td font-mono text-xs text-slate-400">{p.cnic}</td>
-              <td className="td">
+            <TableRow key={p.id}>
+              <TableCell className="font-medium text-slate-200">{p.guardian_name}</TableCell>
+              <TableCell className="font-mono text-xs text-slate-400">{p.cnic}</TableCell>
+              <TableCell>
                 <a href={`tel:${p.contact_no}`} className="flex items-center gap-1.5 text-brand-400 hover:text-brand-300 transition-colors">
                   <Phone size={13} />{p.contact_no}
                 </a>
-              </td>
-              <td className="td text-slate-400">{p.whatsapp_no || '—'}</td>
-              <td className="td text-slate-400 max-w-xs truncate">{p.address || '—'}</td>
-              <td className="td">
+              </TableCell>
+              <TableCell className="text-slate-400">{p.whatsapp_no || '—'}</TableCell>
+              <TableCell className="text-slate-400 max-w-xs truncate">{p.address || '—'}</TableCell>
+              <TableCell>
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
@@ -210,8 +211,8 @@ export default function Parents() {
                     </>
                   )}
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
         </Table>
       )}

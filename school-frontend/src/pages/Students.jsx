@@ -6,10 +6,12 @@ import { studentsApi, parentsApi } from '../api'
 import { useDebouncedValue } from '../hooks/useDebounce'
 import {
   SectionHeader, Table, Modal, ConfirmModal, Pagination, Field,
-  PageLoader, EmptyState, Spinner
+  PageLoader, EmptyState, Spinner, STATUS_STYLES
 } from '../components/UI'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { Badge } from '../components/ui/badge'
+import { TableRow, TableCell } from '../components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const CLASSES = ['Nursery','KG','1','2','3','4','5','6','7','8','9','10']
@@ -239,14 +241,14 @@ export default function Students() {
           )}
         >
           {students.map(s => (
-            <tr key={s.id} className="table-row">
-              <td className="td font-medium text-slate-200">{s.first_name} {s.last_name}</td>
-              <td className="td">
+            <TableRow key={s.id}>
+              <TableCell className="font-medium text-slate-200">{s.first_name} {s.last_name}</TableCell>
+              <TableCell>
                 <span className="font-mono text-xs bg-slate-800 px-2 py-1 rounded-lg">Class {s.current_class}</span>
-              </td>
-              <td className="td font-mono text-xs text-slate-400">{s.cnic_bform}</td>
-              <td className="td text-slate-400">{s.admission_date}</td>
-              <td className="td">
+              </TableCell>
+              <TableCell className="font-mono text-xs text-slate-400">{s.cnic_bform}</TableCell>
+              <TableCell className="text-slate-400">{s.admission_date}</TableCell>
+              <TableCell>
                 {isAdmin ? (
                   <Select value={s.status} onValueChange={(val) => handleStatusChange(s, val)}>
                     <SelectTrigger className="h-7 w-[110px] rounded-full text-xs">
@@ -259,10 +261,10 @@ export default function Students() {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <span className={`badge badge-${s.status}`}>{s.status}</span>
+                  <Badge variant="outline" className={STATUS_STYLES[s.status]}>{s.status}</Badge>
                 )}
-              </td>
-              <td className="td">
+              </TableCell>
+              <TableCell>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetail(s)} title="View">
                     <Eye size={14} />
@@ -281,8 +283,8 @@ export default function Students() {
                     </>
                   )}
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
         </Table>
       )}

@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { Card, CardContent } from '../components/ui/card'
+import { TableRow, TableCell } from '../components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 export default function Payments() {
@@ -109,13 +111,15 @@ export default function Payments() {
 
       {/* Total collected card */}
       {filtered.length > 0 && (
-        <div className="card border-emerald-500/20 bg-emerald-500/5 px-5 py-4 flex items-center gap-4 mb-5">
-          <CreditCard size={20} className="text-emerald-400" />
-          <div>
-            <p className="text-sm font-medium text-emerald-300">Total Collected</p>
-            <p className="text-xs text-slate-400">PKR {totalCollected.toLocaleString()} across {filtered.length} transactions</p>
-          </div>
-        </div>
+        <Card className="border-emerald-500/30 bg-emerald-500/5">
+          <CardContent className="px-5 py-4 flex items-center gap-4">
+            <CreditCard size={20} className="text-emerald-400" />
+            <div>
+              <p className="text-sm font-medium text-emerald-300">Total Collected</p>
+              <p className="text-xs text-muted-foreground">PKR {totalCollected.toLocaleString()} across {filtered.length} transactions</p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <div className="flex gap-4 mb-5">
@@ -152,20 +156,20 @@ export default function Payments() {
           />)}
         >
           {filtered.map(p => (
-            <tr key={p.id} className="table-row">
-              <td className="td font-mono text-xs text-slate-400">#{String(p.id).padStart(4, '0')}</td>
-              <td className="td font-mono text-xs">
+            <TableRow key={p.id}>
+              <TableCell className="font-mono text-xs text-slate-400">#{String(p.id).padStart(4, '0')}</TableCell>
+              <TableCell className="font-mono text-xs">
                 <span className="bg-slate-800 px-2 py-1 rounded-lg">INV-{String(p.invoice_id).padStart(4, '0')}</span>
-              </td>
-              <td className="td font-mono font-semibold text-emerald-400">
+              </TableCell>
+              <TableCell className="font-mono font-semibold text-emerald-400">
                 PKR {Number(p.amount_paid).toLocaleString()}
-              </td>
-              <td className="td text-slate-300">{p.payment_date}</td>
-              <td className="td text-slate-400 max-w-xs truncate">{p.notes || '—'}</td>
-              <td className="td text-xs text-slate-500">
+              </TableCell>
+              <TableCell className="text-slate-300">{p.payment_date}</TableCell>
+              <TableCell className="text-slate-400 max-w-xs truncate">{p.notes || '—'}</TableCell>
+              <TableCell className="text-xs text-slate-500">
                 {new Date(p.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
-              </td>
-              <td className="td">
+              </TableCell>
+              <TableCell>
                 {isAdmin && (
                   <Button 
                     variant="ghost"
@@ -177,8 +181,8 @@ export default function Payments() {
                     <Trash2 size={16} />
                   </Button>
                 )}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
         </Table>
       )}

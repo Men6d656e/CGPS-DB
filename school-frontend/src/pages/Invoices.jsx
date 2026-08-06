@@ -11,6 +11,8 @@ import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Switch } from '../components/ui/switch'
+import { Card, CardContent } from '../components/ui/card'
+import { TableRow, TableCell } from '../components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 export default function Invoices() {
@@ -250,10 +252,12 @@ export default function Invoices() {
             { label: 'Total Collected', value: grandPaid, color: 'text-emerald-400' },
             { label: 'Outstanding', value: grandBalance, color: 'text-amber-400' },
           ].map(({ label, value, color }) => (
-            <div key={label} className="card px-4 py-3">
-              <p className="text-xs text-slate-500 mb-0.5">{label}</p>
-              <p className={`font-mono font-semibold ${color}`}>PKR {value.toLocaleString()}</p>
-            </div>
+            <Card key={label}>
+              <CardContent className="px-4 py-3">
+                <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+                <p className={`font-mono font-semibold ${color}`}>PKR {value.toLocaleString()}</p>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
@@ -294,18 +298,18 @@ export default function Invoices() {
           )}
         >
           {invoices.map(inv => (
-            <tr key={inv.id} className="table-row">
-              <td className="td font-mono text-xs text-slate-400">#{String(inv.id).padStart(4, '0')}</td>
-              <td className="td text-slate-200">
+            <TableRow key={inv.id}>
+              <TableCell className="font-mono text-xs text-slate-400">#{String(inv.id).padStart(4, '0')}</TableCell>
+              <TableCell className="text-slate-200">
                 {inv.student ? `${inv.student.first_name} ${inv.student.last_name}` : `Student #${inv.student_id}`}
-              </td>
-              <td className="td font-mono text-xs">{inv.billing_month}</td>
-              <td className="td font-mono text-sm">PKR {totalForInvoice(inv).toLocaleString()}</td>
-              <td className="td font-mono text-sm text-emerald-400">PKR {paidForInvoice(inv).toLocaleString()}</td>
-              <td className="td font-mono text-sm text-amber-400">PKR {balanceForInvoice(inv).toLocaleString()}</td>
-              <td className="td text-slate-400 text-xs">{inv.due_date}</td>
-              <td className="td"><StatusBadge status={inv.status} /></td>
-              <td className="td">
+              </TableCell>
+              <TableCell className="font-mono text-xs">{inv.billing_month}</TableCell>
+              <TableCell className="font-mono text-sm">PKR {totalForInvoice(inv).toLocaleString()}</TableCell>
+              <TableCell className="font-mono text-sm text-emerald-400">PKR {paidForInvoice(inv).toLocaleString()}</TableCell>
+              <TableCell className="font-mono text-sm text-amber-400">PKR {balanceForInvoice(inv).toLocaleString()}</TableCell>
+              <TableCell className="text-slate-400 text-xs">{inv.due_date}</TableCell>
+              <TableCell><StatusBadge status={inv.status} /></TableCell>
+              <TableCell>
                 <div className="flex items-center gap-1">
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelected(inv); setDetailOpen(true) }} title="View">
                     <Eye size={14} />
@@ -329,8 +333,8 @@ export default function Invoices() {
                     </Button>
                   )}
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
         </Table>
       )}

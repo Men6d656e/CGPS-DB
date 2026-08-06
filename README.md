@@ -204,7 +204,7 @@ See [SPEC/SPEC3.md](SPEC/SPEC3.md) for the plan to replace the raw/custom UI wit
 |-------|-------------|--------|
 | **Phase 1** | Shadcn Foundation (init with preset) | ✅ Complete |
 | **Phase 2** | Forms & Controls Migration | ✅ Complete |
-| **Phase 3** | Data Display Migration | ⏳ Pending |
+| **Phase 3** | Data Display Migration | ✅ Complete |
 | **Phase 4** | Overlays & Feedback Migration | ⏳ Pending |
 | **Phase 5** | App Shell & Theme Polish | ⏳ Pending |
 | **Phase 6** | Cleanup & Final Verification | ⏳ Pending |
@@ -308,6 +308,7 @@ Each phase includes detailed implementation notes, testing results, and commit h
 | Phase 6 | [docs/phase6-advanced-features.md](docs/phase6-advanced-features.md) | Advanced features & dark mode |
 | SPEC3 P1 | [docs/phase1-shadcn-foundation.md](docs/phase1-shadcn-foundation.md) | Shadcn foundation with preset `b7Br6guwa` |
 | SPEC3 P2 | [docs/phase2-forms-controls.md](docs/phase2-forms-controls.md) | Forms & controls → shadcn Button/Input/Select/Switch |
+| SPEC3 P3 | [docs/phase3-data-display.md](docs/phase3-data-display.md) | Data display → shadcn Table/Badge/Pagination/Card/Skeleton |
 
 ### Automation & Tools
 - [docs/after-spec1-automation-script.md](docs/after-spec1-automation-script.md) — Makefile automation script documentation

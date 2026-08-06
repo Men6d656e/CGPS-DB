@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react'
 import { Users, UserCheck, FileText, AlertTriangle, TrendingUp, Banknote } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { dashboardApi, invoicesApi } from '../api'
-import { StatCard, PageLoader, ErrorAlert } from '../components/UI'
+import { StatCard, PageLoader, ErrorAlert, STATUS_STYLES } from '../components/UI'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card'
+import { Badge } from '../components/ui/badge'
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload?.length) {
     return (
-      <div className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm shadow-xl">
-        <p className="text-slate-400 mb-1">{label}</p>
-        <p className="text-slate-100 font-medium">PKR {Number(payload[0].value).toLocaleString()}</p>
+      <div className="bg-popover border rounded-xl px-4 py-3 text-sm shadow-xl">
+        <p className="text-muted-foreground mb-1">{label}</p>
+        <p className="text-foreground font-medium">PKR {Number(payload[0].value).toLocaleString()}</p>
       </div>
     )
   }
@@ -74,70 +76,72 @@ export default function Dashboard() {
 
       {/* Pending amount banner */}
       {Number(stats.total_pending_amount) > 0 && (
-        <div className="card border-amber-500/20 bg-amber-500/5 px-5 py-4 flex items-center gap-4">
-          <TrendingUp size={20} className="text-amber-400 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-amber-300">Outstanding Balance</p>
-            <p className="text-xs text-slate-400">
-              PKR {Number(stats.total_pending_amount).toLocaleString()} pending across all invoices
-            </p>
-          </div>
-        </div>
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="px-5 py-4 flex items-center gap-4">
+            <TrendingUp size={20} className="text-amber-400 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-500 dark:text-amber-400">Outstanding Balance</p>
+              <p className="text-xs text-muted-foreground">
+                PKR {Number(stats.total_pending_amount).toLocaleString()} pending across all invoices
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Chart + Recent Invoices */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Bar chart */}
-        <div className="lg:col-span-3 card p-5">
-          <h3 className="font-display font-semibold text-slate-200 mb-1">Collections Overview</h3>
-          <p className="text-xs text-slate-500 mb-5">Monthly fee collection (PKR)</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={chartData} barSize={32}>
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }}
-                tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-              <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
-                {chartData.map((_, i) => (
-                  <Cell key={i} fill={i === chartData.length - 1 ? '#0ea5e9' : '#1e3a4f'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle className="font-display">Collections Overview</CardTitle>
+            <CardDescription>Monthly fee collection (PKR)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={chartData} barSize={32}>
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 11 }}
+                  tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128,128,128,0.06)' }} />
+                <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={i === chartData.length - 1 ? 'hsl(var(--chart-1))' : 'hsl(var(--chart-3))'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         {/* Recent invoices */}
-        <div className="lg:col-span-2 card p-5">
-          <h3 className="font-display font-semibold text-slate-200 mb-1">Recent Invoices</h3>
-          <p className="text-xs text-slate-500 mb-4">Latest 6 invoices</p>
-          <div className="space-y-2">
-            {recentInvoices.length === 0 && (
-              <p className="text-sm text-slate-500 text-center py-6">No invoices yet</p>
-            )}
-            {recentInvoices.map((inv) => {
-              const statusColor = {
-                paid: 'text-emerald-400',
-                pending: 'text-amber-400',
-                partial: 'text-orange-400',
-                overdue: 'text-red-400',
-              }
-              return (
-                <div key={inv.id} className="flex items-center justify-between py-2.5 border-b border-slate-800/60 last:border-0">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="font-display">Recent Invoices</CardTitle>
+            <CardDescription>Latest 6 invoices</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {recentInvoices.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-6">No invoices yet</p>
+              )}
+              {recentInvoices.map((inv) => (
+                <div key={inv.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
                   <div>
-                    <p className="text-sm text-slate-300">Invoice #{inv.id}</p>
-                    <p className="text-xs text-slate-500">{inv.billing_month}</p>
+                    <p className="text-sm text-foreground">Invoice #{inv.id}</p>
+                    <p className="text-xs text-muted-foreground">{inv.billing_month}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-mono text-slate-200">
+                    <p className="text-sm font-mono text-foreground">
                       PKR {Number(inv.total_amount || 0).toLocaleString()}
                     </p>
-                    <p className={`text-xs capitalize ${statusColor[inv.status]}`}>{inv.status}</p>
+                    <Badge variant="outline" className={`capitalize ${STATUS_STYLES[inv.status]}`}>{inv.status}</Badge>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
