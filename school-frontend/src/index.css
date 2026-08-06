@@ -76,9 +76,6 @@
   --text-muted: #94a3b8;
   --text-faint: #64748b;
   --overlay: rgba(0, 0, 0, 0.7);
-  --toast-bg: #1e293b;
-  --toast-fg: #f1f5f9;
-  --toast-border: #334155;
 }
 
 html:not(.dark) {
@@ -93,9 +90,6 @@ html:not(.dark) {
   --text-muted: #475569;
   --text-faint: #64748b;
   --overlay: rgba(15, 23, 42, 0.55);
-  --toast-bg: #ffffff;
-  --toast-fg: #0f172a;
-  --toast-border: #e2e8f0;
 }
 
 @layer base {

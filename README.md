@@ -207,7 +207,7 @@ See [SPEC/SPEC3.md](SPEC/SPEC3.md) for the plan to replace the raw/custom UI wit
 | **Phase 3** | Data Display Migration | ✅ Complete |
 | **Phase 4** | Overlays & Feedback Migration | ✅ Complete |
 | **Phase 5** | App Shell & Theme Polish | ✅ Complete |
-| **Phase 6** | Cleanup & Final Verification | ⏳ Pending |
+| **Phase 6** | Cleanup & Final Verification | ✅ Complete |
 
 ---
 
@@ -311,6 +311,7 @@ Each phase includes detailed implementation notes, testing results, and commit h
 | SPEC3 P3 | [docs/phase3-data-display.md](docs/phase3-data-display.md) | Data display → shadcn Table/Badge/Pagination/Card/Skeleton |
 | SPEC3 P4 | [docs/phase4-overlays-feedback.md](docs/phase4-overlays-feedback.md) | Overlays & feedback → Dialog/AlertDialog/sonner |
 | SPEC3 P5 | [docs/phase5-app-shell.md](docs/phase5-app-shell.md) | App shell & theme polish → tokens + shadcn components |
+| SPEC3 P6 | [docs/phase6-shadcn-cleanup.md](docs/phase6-shadcn-cleanup.md) | Cleanup & final verification (7 tests) |
 
 ### Automation & Tools
 - [docs/after-spec1-automation-script.md](docs/after-spec1-automation-script.md) — Makefile automation script documentation
