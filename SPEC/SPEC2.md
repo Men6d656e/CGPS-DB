@@ -220,7 +220,7 @@ This spec outlines **6 phases** to make the project genuinely valid, reliable, a
 | Phase | Status | Tests | Docs | Committed |
 |-------|--------|-------|------|-----------|
 | Phase 1: Critical Runtime Fixes | ✅ Complete | ✅ | ✅ | ✅ |
-| Phase 2: Restore Testing | ⏳ Pending | ⬜ | ⬜ | ⬜ |
+| Phase 2: Restore Testing | ✅ Complete | ✅ | ✅ | ✅ |
 | Phase 3: Security Hardening | ⏳ Pending | ⬜ | ⬜ | ⬜ |
 | Phase 4: Data Integrity & Indexes | ⏳ Pending | ⬜ | ⬜ | ⬜ |
 | Phase 5: Working Theme | ⏳ Pending | ⬜ | ⬜ | ⬜ |

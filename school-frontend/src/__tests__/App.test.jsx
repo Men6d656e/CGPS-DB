@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { BrowserRouter } from 'react-router-dom'
 import App from '../App'
@@ -22,10 +22,10 @@ describe('App', () => {
         <App />
       </BrowserRouter>
     )
-    
-    // Should show login form
-    expect(screen.getByText(/School Management/i)).toBeInTheDocument()
-    expect(screen.getByText(/Sign in/i)).toBeInTheDocument()
+
+    // Should show login form (heading + submit button)
+    expect(screen.getByRole('heading', { name: /school management/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
   it('renders login form elements', () => {
@@ -34,9 +34,9 @@ describe('App', () => {
         <App />
       </BrowserRouter>
     )
-    
+
     // Should have username and password inputs
-    expect(screen.getByPlaceholder(/Enter your username/i)).toBeInTheDocument()
-    expect(screen.getByPlaceholder(/Enter your password/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/enter your username/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/enter your password/i)).toBeInTheDocument()
   })
 })
