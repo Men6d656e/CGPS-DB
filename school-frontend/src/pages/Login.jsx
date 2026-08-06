@@ -1,8 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GraduationCap, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { GraduationCap, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useAuth } from '../contexts/AuthContext'
+import ThemeToggle from '../components/ThemeToggle'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Card, CardContent } from '../components/ui/card'
+import { Alert, AlertDescription } from '../components/ui/alert'
 
 export default function Login() {
   const [username, setUsername] = useState('muhammadnawaz')
@@ -80,16 +86,16 @@ export default function Login() {
               />
             </div>
 
-            <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="input pr-10"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                  autoFocus
                   disabled={loading}
                 />
                 <button
@@ -101,7 +107,6 @@ export default function Login() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-            </div>
 
             <button
               type="submit"

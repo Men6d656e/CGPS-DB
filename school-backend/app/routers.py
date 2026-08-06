@@ -55,7 +55,7 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing refresh token",
         )
-    payload = decode_token(refresh_token, expected_type="refresh")
+    payload = await decode_token(refresh_token, expected_type="refresh", db=db)
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -73,11 +73,11 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
 
 
 @auth_router.post("/logout", status_code=204)
-async def logout(request: Request, response: Response):
+async def logout(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
     """Invalidate a refresh token (adds it to the revocation list)."""
     refresh_token = request.cookies.get("refresh_token")
     if refresh_token:
-        revoke_token(refresh_token)
+        await revoke_token(refresh_token, db)
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
 
@@ -117,7 +117,10 @@ async def list_students(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await crud.get_students(db, skip=skip, limit=limit, status=status, search=search)
+    try:
+        return await crud.get_students(db, skip=skip, limit=limit, status=status, search=search)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @students_router.post("/", response_model=schemas.StudentOut, status_code=201)
@@ -293,7 +296,10 @@ async def list_teachers(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await crud.get_teachers(db, skip=skip, limit=limit, status=status, search=search)
+    try:
+        return await crud.get_teachers(db, skip=skip, limit=limit, status=status, search=search)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
 
 @teachers_router.post("/", response_model=schemas.TeacherOut, status_code=201)
@@ -395,6 +401,18 @@ async def add_class_override(
         raise HTTPException(status_code=409, detail="Override already exists for this class")
 
 
+@fees_router.delete("/{fee_type_id}", status_code=204)
+async def delete_fee_type(
+    fee_type_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Delete a fee type (only if not used in any invoices)."""
+    fee = await crud.delete_fee_type(db, fee_type_id)
+    if not fee:
+        raise HTTPException(status_code=404, detail="Fee type not found")
+
+
 # ─── Invoices Router ──────────────────────────────────────────────────────────
 
 invoices_router = APIRouter(prefix="/invoices", tags=["Invoices"])
@@ -409,7 +427,10 @@ async def list_invoices(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    invoices = await crud.get_invoices(db, student_id=student_id, status=status, skip=skip, limit=limit)
+    try:
+        invoices = await crud.get_invoices(db, student_id=student_id, status=status, skip=skip, limit=limit)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     result = []
     for inv in invoices:
         inv_dict = schemas.InvoiceOut.model_validate(inv).model_dump()
@@ -478,8 +499,11 @@ async def delete_invoice(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Delete an invoice and all its line items and payments (cascade)."""
-    invoice = await crud.delete_invoice(db, invoice_id)
+    """Delete an invoice (blocked while it has non-voided payments)."""
+    try:
+        invoice = await crud.delete_invoice(db, invoice_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
@@ -521,7 +545,7 @@ async def delete_payment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Void/delete a payment (recalculates invoice status automatically)."""
+    """Void a payment (soft delete — recalculates invoice status automatically)."""
     payment = await crud.delete_payment(db, payment_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")

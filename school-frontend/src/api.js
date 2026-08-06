@@ -99,6 +99,7 @@ export const feesApi = {
   list: () => api.get('/fees'),
   create: (data) => api.post('/fees', data),
   update: (id, data) => api.patch(`/fees/${id}`, data),
+  delete: (id) => api.delete(`/fees/${id}`),
   addOverride: (id, data) => api.post(`/fees/${id}/overrides`, data),
 }
 

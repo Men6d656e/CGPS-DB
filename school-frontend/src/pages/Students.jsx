@@ -2,10 +2,16 @@ import { useEffect, useState } from 'react'
 import { Plus, Search, Users, Edit2, Trash2, Link, Eye, UserCheck, Phone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { studentsApi, parentsApi } from '../api'
+import { useDebouncedValue } from '../hooks/useDebounce'
 import {
-  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, StatusBadge,
-  PageLoader, EmptyState, Spinner
+  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field,
+  PageLoader, EmptyState, Spinner, STATUS_STYLES
 } from '../components/UI'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Badge } from '../components/ui/badge'
+import { TableRow, TableCell } from '../components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 const CLASSES = ['Nursery','KG','1','2','3','4','5','6','7','8','9','10']
 
@@ -45,6 +51,9 @@ export default function Students() {
   const [linkData, setLinkData] = useState({ parent_id: '', relationship: 'Father' })
   const [detailParents, setDetailParents] = useState([])
   const [saving, setSaving] = useState(false)
+
+  // Live search with debounce (SPEC2 Phase 6) — still works with Enter/button
+  const debouncedSearch = useDebouncedValue(searchInput, 400)
 
   const load = async () => {
     setLoading(true)
@@ -145,6 +154,16 @@ export default function Students() {
     } finally { setSaving(false) }
   }
 
+  const handleStatusChange = async (student, status) => {
+    try {
+      await studentsApi.update(student.id, { status })
+      toast.success('Student status updated!')
+      load()
+    } catch {
+      toast.error('Failed to update status')
+    }
+  }
+
   return (
     <div className="animate-fade-in">
       <SectionHeader
@@ -168,19 +187,29 @@ export default function Students() {
             onChange={e => setSearchInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') setSearch(searchInput) }}
           />
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setSearch(searchInput)}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
             title="Search"
           >
             <Search size={14} />
-          </button>
+          </Button>
         </div>
-        <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-40">
-          <option value="">All Status</option>
-          <option value="active">Active</option>
-          <option value="withdrawn">Withdrawn</option>
-          <option value="graduated">Graduated</option>
+        <Select
+          value={statusFilter === '' ? 'all' : statusFilter}
+          onValueChange={v => setStatusFilter(v === 'all' ? '' : v)}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="withdrawn">Withdrawn</SelectItem>
+            <SelectItem value="graduated">Graduated</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 
@@ -242,8 +271,8 @@ export default function Students() {
                     <Trash2 size={14} />
                   </button>
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
         </Table>
       )}
@@ -262,31 +291,36 @@ export default function Students() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Add New Student">
         <div className="grid grid-cols-2 gap-4">
           <Field label="First Name">
-            <input className="input" value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} placeholder="Ali" />
+            <Input value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} placeholder="Ali" />
           </Field>
           <Field label="Last Name">
-            <input className="input" value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="Khan" />
+            <Input value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} placeholder="Khan" />
           </Field>
           <Field label="CNIC / B-Form">
             <input className="input" value={form.cnic_bform} onChange={e => setForm({ ...form, cnic_bform: formatCNIC(e.target.value) })} maxLength={15} placeholder="34201-1234567-1" />
           </Field>
           <Field label="Date of Birth">
-            <input type="date" className="input" value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })} />
+            <Input type="date" value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })} />
           </Field>
           <Field label="Admission Date">
-            <input type="date" className="input" value={form.admission_date} onChange={e => setForm({ ...form, admission_date: e.target.value })} />
+            <Input type="date" value={form.admission_date} onChange={e => setForm({ ...form, admission_date: e.target.value })} />
           </Field>
           <Field label="Current Class">
-            <Select value={form.current_class} onChange={e => setForm({ ...form, current_class: e.target.value })}>
-              {CLASSES.map(c => <option key={c} value={c}>Class {c}</option>)}
+            <Select value={form.current_class} onValueChange={v => setForm({ ...form, current_class: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CLASSES.map(c => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}
+              </SelectContent>
             </Select>
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleCreate} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={saving}>
             {saving ? <Spinner size={15} /> : <Plus size={15} />} Create Student
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -294,29 +328,39 @@ export default function Students() {
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Student">
         <div className="grid grid-cols-2 gap-4">
           <Field label="First Name">
-            <input className="input" value={editForm.first_name || ''} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} />
+            <Input value={editForm.first_name || ''} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} />
           </Field>
           <Field label="Last Name">
-            <input className="input" value={editForm.last_name || ''} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} />
+            <Input value={editForm.last_name || ''} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} />
           </Field>
           <Field label="Current Class">
-            <Select value={editForm.current_class || ''} onChange={e => setEditForm({ ...editForm, current_class: e.target.value })}>
-              {CLASSES.map(c => <option key={c} value={c}>Class {c}</option>)}
+            <Select value={editForm.current_class || 'Nursery'} onValueChange={v => setEditForm({ ...editForm, current_class: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CLASSES.map(c => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}
+              </SelectContent>
             </Select>
           </Field>
           <Field label="Status">
-            <Select value={editForm.status || ''} onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
-              <option value="active">Active</option>
-              <option value="withdrawn">Withdrawn</option>
-              <option value="graduated">Graduated</option>
+            <Select value={editForm.status || 'active'} onValueChange={v => setEditForm({ ...editForm, status: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                <SelectItem value="graduated">Graduated</SelectItem>
+              </SelectContent>
             </Select>
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setEditOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleEdit} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button onClick={handleEdit} disabled={saving}>
             {saving ? <Spinner size={15} /> : null} Save Changes
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -342,7 +386,7 @@ export default function Students() {
             {/* Linked Parents */}
             {detailParents.length > 0 ? (
               <div>
-                <p className="label mb-2">Parents / Guardians ({detailParents.length})</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Parents / Guardians ({detailParents.length})</p>
                 <div className="space-y-1.5">
                   {detailParents.map(p => (
                     <div key={p.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
@@ -379,7 +423,7 @@ export default function Students() {
 
             {siblings.length > 0 && (
               <div>
-                <p className="label mb-2">Siblings ({siblings.length})</p>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Siblings ({siblings.length})</p>
                 <div className="space-y-1.5">
                   {siblings.map(sib => (
                     <div key={sib.id} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
@@ -399,29 +443,42 @@ export default function Students() {
       <Modal open={linkOpen} onClose={() => setLinkOpen(false)} title="Link Parent to Student">
         <div className="space-y-4">
           <Field label="Select Parent">
-            <Select value={linkData.parent_id} onChange={e => setLinkData({ ...linkData, parent_id: e.target.value })}>
-              <option value="">Choose a parent...</option>
-              {parents.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.guardian_name} — {p.cnic ? `${p.cnic.slice(0, 5)}-XXXXXXX-${p.cnic.slice(-1)}` : 'No CNIC'}
-                </option>
-              ))}
+            <Select
+              value={linkData.parent_id === '' ? 'none' : String(linkData.parent_id)}
+              onValueChange={v => setLinkData({ ...linkData, parent_id: v === 'none' ? '' : v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a parent..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Choose a parent...</SelectItem>
+                {parents.map(p => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.guardian_name} — {p.cnic ? `${p.cnic.slice(0, 5)}-XXXXXXX-${p.cnic.slice(-1)}` : 'No CNIC'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </Field>
           <Field label="Relationship">
-            <Select value={linkData.relationship} onChange={e => setLinkData({ ...linkData, relationship: e.target.value })}>
-              <option value="Father">Father</option>
-              <option value="Mother">Mother</option>
-              <option value="Guardian">Guardian</option>
-              <option value="Other">Other</option>
+            <Select value={linkData.relationship} onValueChange={v => setLinkData({ ...linkData, relationship: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Father">Father</SelectItem>
+                <SelectItem value="Mother">Mother</SelectItem>
+                <SelectItem value="Guardian">Guardian</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
             </Select>
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setLinkOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleLink} disabled={saving || !linkData.parent_id} className="btn-primary">
+          <Button variant="outline" onClick={() => setLinkOpen(false)}>Cancel</Button>
+          <Button onClick={handleLink} disabled={saving || !linkData.parent_id}>
             {saving ? <Spinner size={15} /> : <Link size={15} />} Link Parent
-          </button>
+          </Button>
         </div>
       </Modal>
 

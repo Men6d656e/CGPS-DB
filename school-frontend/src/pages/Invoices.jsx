@@ -3,9 +3,16 @@ import { Plus, FileText, Eye, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { invoicesApi, studentsApi, feesApi } from '../api'
 import {
-  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, StatusBadge,
+  SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, StatusBadge,
   PageLoader, EmptyState, Spinner
 } from '../components/UI'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Switch } from '../components/ui/switch'
+import { Card, CardContent } from '../components/ui/card'
+import { TableRow, TableCell } from '../components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 
 export default function Invoices() {
   const [invoices, setInvoices] = useState([])
@@ -117,6 +124,102 @@ export default function Invoices() {
     } catch { toast.error('Failed to delete invoice') }
   }
 
+  const handlePrint = (invoice) => {
+    const printWindow = window.open('', '_blank')
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice #${String(invoice.id).padStart(4, '0')}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+        <style>
+          body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #1f2937; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 30px; border-bottom: 2px solid #374151; padding-bottom: 20px; }
+          .school-name { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700; color: #111827; }
+          .invoice-title { font-family: 'Playfair Display', serif; font-size: 20px; color: #4b5563; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+          .info-box { background: #f3f4f6; padding: 15px; border-radius: 8px; }
+          .info-label { font-size: 12px; color: #6b7280; margin-bottom: 5px; }
+          .info-value { font-size: 16px; font-weight: 600; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+          th { background: #f3f4f6; font-weight: 600; }
+          th.num, td.num { text-align: right; font-family: 'JetBrains Mono', monospace; }
+          .total-row { font-family: 'JetBrains Mono', monospace; font-weight: 700; border-top: 2px solid #374151; }
+          .footer { margin-top: 40px; text-align: center; color: #6b7280; font-size: 12px; }
+          @media print { body { padding: 20px; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <div class="school-name">School Management System</div>
+            <div style="color: #666;">Fee Invoice</div>
+          </div>
+          <div class="invoice-title">Invoice #${String(invoice.id).padStart(4, '0')}</div>
+        </div>
+        
+        <div class="info-grid">
+          <div class="info-box">
+            <div class="info-label">Student</div>
+            <div class="info-value">${invoice.student ? `${invoice.student.first_name} ${invoice.student.last_name}` : `Student #${invoice.student_id}`}</div>
+          </div>
+          <div class="info-box">
+            <div class="info-label">Class</div>
+            <div class="info-value">${invoice.student?.current_class || 'N/A'}</div>
+          </div>
+          <div class="info-box">
+            <div class="info-label">Billing Month</div>
+            <div class="info-value">${invoice.billing_month}</div>
+          </div>
+          <div class="info-box">
+            <div class="info-label">Due Date</div>
+            <div class="info-value">${invoice.due_date}</div>
+          </div>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Fee Type</th>
+              <th class="num">Amount (PKR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(invoice.line_items || []).map(li => `
+              <tr>
+                <td>${li.fee_type?.fee_name || `Fee #${li.fee_type_id}`}</td>
+                <td class="num">${Number(li.amount).toLocaleString()}</td>
+              </tr>
+            `).join('')}
+            <tr class="total-row">
+              <td>Total</td>
+              <td class="num">${Number(invoice.total_amount || 0).toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td>Paid</td>
+              <td class="num" style="color: #059669;">${Number(invoice.amount_paid || 0).toLocaleString()}</td>
+            </tr>
+            <tr class="total-row">
+              <td>Balance Due</td>
+              <td class="num" style="color: #d97706;">${Number(invoice.balance_due || 0).toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="footer">
+          <p>Status: ${invoice.status.toUpperCase()}</p>
+          <p>Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+      </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.print()
+  }
+
   const totalForInvoice = (inv) => Number(inv.total_amount || 0)
   const paidForInvoice = (inv) => Number(inv.amount_paid || 0)
   const balanceForInvoice = (inv) => Number(inv.balance_due || 0)
@@ -155,12 +258,20 @@ export default function Invoices() {
 
       {/* Filter */}
       <div className="mb-5">
-        <Select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-44">
-          <option value="">All Invoices</option>
-          <option value="pending">Pending</option>
-          <option value="partial">Partial</option>
-          <option value="paid">Paid</option>
-          <option value="overdue">Overdue</option>
+        <Select
+          value={statusFilter === '' ? 'all' : statusFilter}
+          onValueChange={v => setStatusFilter(v === 'all' ? '' : v)}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="All Invoices" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Invoices</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="partial">Partial</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="overdue">Overdue</SelectItem>
+          </SelectContent>
         </Select>
       </div>
 
@@ -200,15 +311,15 @@ export default function Invoices() {
                     <button onClick={() => handleOverdueClick(inv)}
                       className="text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg transition-colors border border-red-200/60 font-medium">
                       Overdue
-                    </button>
+                    </Button>
                   )}
                   <button onClick={() => handleDeleteClick(inv)}
                     className="p-1.5 hover:bg-red-50 rounded-lg transition-colors text-gray-400 hover:text-red-500" title="Delete">
                     <Trash2 size={14} />
                   </button>
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
         </Table>
       )}
@@ -228,20 +339,28 @@ export default function Invoices() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Student">
-              <Select value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })}>
-                <option value="">Select student...</option>
-                {students.map(s => (
-                  <option key={s.id} value={s.id}>{s.first_name} {s.last_name} — Class {s.current_class}</option>
-                ))}
+              <Select
+                value={form.student_id === '' ? 'none' : String(form.student_id)}
+                onValueChange={v => setForm({ ...form, student_id: v === 'none' ? '' : v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select student..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Select student...</SelectItem>
+                  {students.map(s => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.first_name} {s.last_name} — Class {s.current_class}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </Field>
             <Field label="Billing Month">
-              <input type="month" className="input" value={form.billing_month}
+              <Input type="month" value={form.billing_month}
                 onChange={e => setForm({ ...form, billing_month: e.target.value })} />
             </Field>
             <div className="col-span-2">
               <Field label="Due Date">
-                <input type="date" className="input" value={form.due_date}
+                <Input type="date" value={form.due_date}
                   onChange={e => setForm({ ...form, due_date: e.target.value })} />
               </Field>
             </div>
@@ -249,7 +368,7 @@ export default function Invoices() {
 
           {/* Fee Line Items */}
           <div>
-            <label className="label">Fee Items</label>
+            <Label className="mb-2">Fee Items</Label>
             <div className="space-y-2">
               {form.line_items.map((item, i) => {
                 const ft = feeTypes.find(f => f.id === item.fee_type_id)
@@ -258,7 +377,7 @@ export default function Invoices() {
                     <input type="checkbox" checked={item.enabled}
                       onChange={e => {
                         const items = [...form.line_items]
-                        items[i] = { ...items[i], enabled: e.target.checked }
+                        items[i] = { ...items[i], enabled: checked }
                         setForm({ ...form, line_items: items })
                       }}
                       className="w-4 h-4 accent-teal-600 rounded"
@@ -288,10 +407,10 @@ export default function Invoices() {
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleCreate} disabled={saving || !form.student_id || !form.due_date} className="btn-primary">
+          <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={saving || !form.student_id || !form.due_date}>
             {saving ? <Spinner size={15} /> : <Plus size={15} />} Create Invoice
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -315,7 +434,7 @@ export default function Invoices() {
 
             {/* Line items */}
             <div>
-              <p className="label mb-2">Fee Breakdown</p>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Fee Breakdown</p>
               <div className="space-y-1.5">
                 {selected.line_items?.map(li => (
                   <div key={li.id} className="flex justify-between items-center py-2.5 border-b border-gray-100 last:border-0">

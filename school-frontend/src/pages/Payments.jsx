@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, CreditCard, Search, Trash2 } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { paymentsApi, invoicesApi } from '../api'
 import { SectionHeader, Table, Modal, ConfirmModal, Pagination, Field, Select, PageLoader, EmptyState, Spinner } from '../components/UI'
 
@@ -129,17 +129,17 @@ export default function Payments() {
             <Search size={14} />
           </button>
         </div>
-        <input
+        <Input
           type="date"
-          className="input w-40"
+          className="w-40"
           value={dateFilter}
           onChange={e => setDateFilter(e.target.value)}
           title="Filter by payment date"
         />
         {(search || dateFilter) && (
-          <button onClick={() => { setSearch(''); setDateFilter('') }} className="btn-secondary">
+          <Button variant="outline" onClick={() => { setSearch(''); setDateFilter('') }}>
             Clear
-          </button>
+          </Button>
         )}
       </div>
 
@@ -225,28 +225,28 @@ export default function Payments() {
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Amount (PKR)">
-              <input type="number" className="input" value={form.amount_paid}
+              <Input type="number" value={form.amount_paid}
                 onChange={e => setForm({ ...form, amount_paid: e.target.value })}
                 placeholder={selectedInvoice ? Number(selectedInvoice.balance_due || 0).toString() : '0'}
               />
             </Field>
             <Field label="Payment Date">
-              <input type="date" className="input" value={form.payment_date}
+              <Input type="date" value={form.payment_date}
                 onChange={e => setForm({ ...form, payment_date: e.target.value })} />
             </Field>
           </div>
 
           <Field label="Notes (Optional)">
-            <input className="input" value={form.notes}
+            <Input value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
               placeholder="Cash payment, bank transfer..." />
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleCreate} disabled={saving || !form.invoice_id || !form.amount_paid} className="btn-primary">
+          <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={saving || !form.invoice_id || !form.amount_paid}>
             {saving ? <Spinner size={15} /> : <CreditCard size={15} />} Record Payment
-          </button>
+          </Button>
         </div>
       </Modal>
 

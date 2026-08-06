@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, DollarSign, Edit2, ChevronDown, ChevronUp } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { Plus, DollarSign, Edit2, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { feesApi } from '../api'
 import { SectionHeader, Modal, Field, PageLoader, EmptyState, Spinner } from '../components/UI'
 
@@ -18,6 +18,8 @@ export default function Fees() {
   const [editForm, setEditForm] = useState({})
   const [overrideForm, setOverrideForm] = useState({ class_name: 'Nursery', amount: '' })
   const [saving, setSaving] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
+  const [feeToDelete, setFeeToDelete] = useState(null)
 
   const load = async () => {
     setLoading(true)
@@ -69,6 +71,22 @@ export default function Fees() {
     } finally { setSaving(false) }
   }
 
+  const handleDeleteClick = (fee) => {
+    setFeeToDelete(fee)
+    setConfirmDeleteOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!feeToDelete) return
+    try {
+      await feesApi.delete(feeToDelete.id)
+      toast.success('Fee type deleted')
+      load()
+    } catch (e) {
+      toast.error(e.response?.data?.detail || 'Failed to delete fee type (may be used in invoices)')
+    }
+  }
+
   return (
     <div className="animate-fade-in">
       <SectionHeader
@@ -89,7 +107,7 @@ export default function Fees() {
       ) : (
         <div className="space-y-3">
           {fees.map(fee => (
-            <div key={fee.id} className="card overflow-hidden">
+            <Card key={fee.id} className="overflow-hidden">
               <div
                 className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-gray-50/80 transition-colors"
                 onClick={() => setExpanded(expanded === fee.id ? null : fee.id)}
@@ -162,7 +180,7 @@ export default function Fees() {
                   )}
                 </div>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}
@@ -171,20 +189,20 @@ export default function Fees() {
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Add Fee Type">
         <div className="space-y-4">
           <Field label="Fee Name">
-            <input className="input" value={form.fee_name} onChange={e => setForm({ ...form, fee_name: e.target.value })} placeholder="Tuition Fee" />
+            <Input value={form.fee_name} onChange={e => setForm({ ...form, fee_name: e.target.value })} placeholder="Tuition Fee" />
           </Field>
           <Field label="Default Amount (PKR)">
-            <input type="number" className="input" value={form.default_amount} onChange={e => setForm({ ...form, default_amount: e.target.value })} placeholder="3500" />
+            <Input type="number" value={form.default_amount} onChange={e => setForm({ ...form, default_amount: e.target.value })} placeholder="3500" />
           </Field>
           <Field label="Description (Optional)">
-            <input className="input" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Monthly tuition fee" />
+            <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Monthly tuition fee" />
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleCreate} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={saving}>
             {saving ? <Spinner size={15} /> : <Plus size={15} />} Create
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -192,13 +210,13 @@ export default function Fees() {
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Fee Type">
         <div className="space-y-4">
           <Field label="Fee Name">
-            <input className="input" value={editForm.fee_name || ''} onChange={e => setEditForm({ ...editForm, fee_name: e.target.value })} />
+            <Input value={editForm.fee_name || ''} onChange={e => setEditForm({ ...editForm, fee_name: e.target.value })} />
           </Field>
           <Field label="Default Amount (PKR)">
-            <input type="number" className="input" value={editForm.default_amount || ''} onChange={e => setEditForm({ ...editForm, default_amount: e.target.value })} />
+            <Input type="number" value={editForm.default_amount || ''} onChange={e => setEditForm({ ...editForm, default_amount: e.target.value })} />
           </Field>
           <Field label="Description">
-            <input className="input" value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
+            <Input value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
           </Field>
           <Field label="Status">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -208,10 +226,10 @@ export default function Fees() {
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setEditOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleEdit} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button onClick={handleEdit} disabled={saving}>
             {saving ? <Spinner size={15} /> : null} Save
-          </button>
+          </Button>
         </div>
       </Modal>
 
@@ -219,21 +237,37 @@ export default function Fees() {
       <Modal open={overrideOpen} onClose={() => setOverrideOpen(false)} title={`Class Override — ${selected?.fee_name}`}>
         <div className="space-y-4">
           <Field label="Class">
-            <select className="input" value={overrideForm.class_name} onChange={e => setOverrideForm({ ...overrideForm, class_name: e.target.value })}>
-              {CLASSES.map(c => <option key={c} value={c}>Class {c}</option>)}
-            </select>
+            <Select value={overrideForm.class_name} onValueChange={v => setOverrideForm({ ...overrideForm, class_name: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CLASSES.map(c => <SelectItem key={c} value={c}>Class {c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="Amount (PKR)">
-            <input type="number" className="input" value={overrideForm.amount} onChange={e => setOverrideForm({ ...overrideForm, amount: e.target.value })} placeholder="4000" />
+            <Input type="number" value={overrideForm.amount} onChange={e => setOverrideForm({ ...overrideForm, amount: e.target.value })} placeholder="4000" />
           </Field>
         </div>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setOverrideOpen(false)} className="btn-secondary">Cancel</button>
-          <button onClick={handleAddOverride} disabled={saving} className="btn-primary">
+          <Button variant="outline" onClick={() => setOverrideOpen(false)}>Cancel</Button>
+          <Button onClick={handleAddOverride} disabled={saving}>
             {saving ? <Spinner size={15} /> : <Plus size={15} />} Add Override
-          </button>
+          </Button>
         </div>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Fee Type"
+        message={feeToDelete ? `Are you sure you want to delete ${feeToDelete.fee_name}? This action cannot be undone.` : ''}
+        confirmText="Delete"
+        isDestructive={true}
+      />
     </div>
   )
 }

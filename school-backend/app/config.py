@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     RSA_PRIVATE_KEY: str = ""
     RSA_PUBLIC_KEY: str = ""
 
+    # ─── Dedup Hash Key (HMAC-SHA256 for CNIC/B-Form uniqueness) ────────────
+    # Falls back to SECRET_KEY when not set.
+    HASH_SECRET_KEY: str = ""
+
     @property
     def origins_list(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]

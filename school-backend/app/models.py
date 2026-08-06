@@ -12,7 +12,7 @@ import enum
 from datetime import date, datetime
 from decimal import Decimal
 from sqlalchemy import (
-    Integer, String, Text, Date, DateTime, Numeric,
+    Integer, String, Text, Date, DateTime, Numeric, Boolean,
     ForeignKey, Enum as SAEnum, UniqueConstraint, func
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, relationship as orm_relationship
@@ -31,6 +31,18 @@ class User(Base):
     full_name: Mapped[str | None] = mapped_column(String(150), nullable=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+# ─── Revoked Tokens (Database-backed token revocation) ────────────────────────
+
+class RevokedToken(Base):
+    """Stores revoked refresh tokens to prevent reuse after logout."""
+    __tablename__ = "revoked_tokens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    token_jti: Mapped[str] = mapped_column(String(36), unique=True, nullable=False, index=True)
+    revoked_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
 
 # ─── Enums ────────────────────────────────────────────────────────────────────
@@ -243,6 +255,7 @@ class Payment(Base):
     amount_paid: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     payment_date: Mapped[date] = mapped_column(Date, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_voided: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     invoice: Mapped["Invoice"] = relationship(back_populates="payments")

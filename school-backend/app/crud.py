@@ -4,7 +4,7 @@ CRUD Operations — Database logic separated from routes
 
 from datetime import date, datetime
 from decimal import Decimal
-from sqlalchemy import select, func, and_, desc, text
+from sqlalchemy import select, func, and_, or_, desc
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import set_committed_value
@@ -64,7 +64,9 @@ async def get_students(db: AsyncSession, skip: int = 0, limit: int = 50, status:
         selectinload(models.Student.parent_links).selectinload(models.StudentParentRel.parent)
     )
     if status:
-        q = q.where(models.Student.status == status)
+        status_enum = _to_enum(models.StudentStatus, status)
+        if status_enum:
+            q = q.where(models.Student.status == status_enum)
     if search:
         pattern = f"%{search}%"
         q = q.where(
@@ -93,8 +95,14 @@ async def get_student(db: AsyncSession, student_id: int):
 
 async def create_student(db: AsyncSession, data: schemas.StudentCreate):
     cnic_hash = hash_for_dedup(data.cnic_bform)
+    legacy_hash = legacy_sha256_hash(data.cnic_bform)
     existing = await db.execute(
-        select(models.Student).where(models.Student.cnic_bform_hash == cnic_hash)
+        select(models.Student).where(
+            or_(  # match new HMAC hash OR legacy SHA-256 (pre-Phase 3 rows)
+                models.Student.cnic_bform_hash == cnic_hash,
+                models.Student.cnic_bform_hash == legacy_hash,
+            )
+        )
     )
     if existing.scalar_one_or_none():
         raise ValueError("Student with this CNIC/B-Form already exists")
@@ -167,11 +175,16 @@ def _decrypt_parent_cnic(parent: models.Parent):
 async def get_parents(db: AsyncSession, skip: int = 0, limit: int = 50, search: str = None):
     q = select(models.Parent)
     if search:
+        # Try to hash the search term for CNIC lookup (new HMAC + legacy SHA-256)
+        search_hash = hash_for_dedup(search)
+        legacy_search_hash = legacy_sha256_hash(search)
         pattern = f"%{search}%"
         q = q.where(
             models.Parent.guardian_name.ilike(pattern)
             | models.Parent.contact_no.ilike(pattern)
             | models.Parent.whatsapp_no.ilike(pattern)
+            | models.Parent.cnic_hash == search_hash
+            | models.Parent.cnic_hash == legacy_search_hash
         )
     q = q.offset(skip).limit(limit).order_by(desc(models.Parent.created_at))
     result = await db.execute(q)
@@ -193,8 +206,14 @@ async def get_parent(db: AsyncSession, parent_id: int):
 
 async def create_parent(db: AsyncSession, data: schemas.ParentCreate):
     cnic_hash = hash_for_dedup(data.cnic)
+    legacy_hash = legacy_sha256_hash(data.cnic)
     existing = await db.execute(
-        select(models.Parent).where(models.Parent.cnic_hash == cnic_hash)
+        select(models.Parent).where(
+            or_(  # match new HMAC hash OR legacy SHA-256 (pre-Phase 3 rows)
+                models.Parent.cnic_hash == cnic_hash,
+                models.Parent.cnic_hash == legacy_hash,
+            )
+        )
     )
     if existing.scalar_one_or_none():
         raise ValueError("Parent with this CNIC already exists")
@@ -266,7 +285,9 @@ async def unlink_parent_from_student(db: AsyncSession, student_id: int, parent_i
 async def get_teachers(db: AsyncSession, skip: int = 0, limit: int = 50, status: str = None, search: str = None):
     q = select(models.Teacher)
     if status:
-        q = q.where(models.Teacher.status == status)
+        status_enum = _to_enum(models.TeacherStatus, status)
+        if status_enum:
+            q = q.where(models.Teacher.status == status_enum)
     if search:
         pattern = f"%{search}%"
         q = q.where(
@@ -355,14 +376,33 @@ async def add_class_override(db: AsyncSession, fee_type_id: int, data: schemas.F
     return override
 
 
+async def delete_fee_type(db: AsyncSession, fee_type_id: int):
+    """Delete a fee type (only if not used in any invoices)."""
+    fee = await get_fee_type(db, fee_type_id)
+    if fee:
+        # Check if fee type is used in any invoice line items
+        from sqlalchemy import select, func
+        used_in_invoice = await db.execute(
+            select(func.count(models.InvoiceLineItem.id)).where(
+                models.InvoiceLineItem.fee_type_id == fee_type_id
+            )
+        )
+        if used_in_invoice.scalar() > 0:
+            raise ValueError("Cannot delete fee type that is used in existing invoices")
+        await db.delete(fee)
+        await db.flush()
+    return fee
+
+
 # ─── Invoices ─────────────────────────────────────────────────────────────────
 
 def attach_invoice_financials(invoice: models.Invoice) -> dict:
     """Compute total_amount, amount_paid, balance_due from loaded relationships.
     (Renamed from _attach_invoice_financials to make it a proper public function.)
+    Voided payments are excluded from the paid amount.
     """
     total = sum(item.amount for item in invoice.line_items)
-    paid = sum(p.amount_paid for p in invoice.payments)
+    paid = sum(p.amount_paid for p in invoice.payments if not p.is_voided)
     balance = Decimal(str(total)) - Decimal(str(paid))
     return {"total_amount": total, "amount_paid": paid, "balance_due": balance}
 
@@ -389,10 +429,24 @@ async def get_invoices(db: AsyncSession, student_id: int = None, status: str = N
     if student_id:
         q = q.where(models.Invoice.student_id == student_id)
     if status:
-        q = q.where(models.Invoice.status == status)
+        status_enum = _to_enum(models.InvoiceStatus, status)
+        if status_enum == models.InvoiceStatus.OVERDUE:
+            # "overdue" is computed: unpaid + past due date (not a stored value)
+            q = q.where(
+                models.Invoice.due_date < date.today(),
+                models.Invoice.status.in_([
+                    models.InvoiceStatus.PENDING, models.InvoiceStatus.PARTIAL
+                ]),
+            )
+        elif status_enum:
+            q = q.where(models.Invoice.status == status_enum)
     q = q.offset(skip).limit(limit).order_by(desc(models.Invoice.created_at))
     result = await db.execute(q)
-    return result.scalars().all()
+    invoices = result.scalars().all()
+    today = date.today()
+    for inv in invoices:
+        _apply_overdue(inv, today)
+    return invoices
 
 
 async def get_invoice(db: AsyncSession, invoice_id: int):
@@ -436,18 +490,27 @@ async def update_invoice_status(db: AsyncSession, invoice_id: int, status: schem
 
 
 async def delete_invoice(db: AsyncSession, invoice_id: int):
-    """Delete an invoice (cascade deletes line items and payments)."""
+    """Delete an invoice — blocked while it has non-voided payments."""
     invoice = await get_invoice(db, invoice_id)
-    if invoice:
-        await db.delete(invoice)
-        await db.flush()
+    if not invoice:
+        return None
+    active_payments = [p for p in invoice.payments if not p.is_voided]
+    if active_payments:
+        raise ValueError(
+            "Cannot delete an invoice with payments — void the payments first"
+        )
+    await db.delete(invoice)
+    await db.flush()
     return invoice
 
 
 # ─── Payments ─────────────────────────────────────────────────────────────────
 
-async def get_payments(db: AsyncSession, invoice_id: int = None, skip: int = 0, limit: int = 50):
+async def get_payments(db: AsyncSession, invoice_id: int = None, skip: int = 0, limit: int = 50,
+                       include_voided: bool = False):
     q = select(models.Payment)
+    if not include_voided:
+        q = q.where(models.Payment.is_voided.is_(False))
     if invoice_id:
         q = q.where(models.Payment.invoice_id == invoice_id)
     q = q.offset(skip).limit(limit).order_by(desc(models.Payment.payment_date))
@@ -491,19 +554,20 @@ async def create_payment(db: AsyncSession, data: schemas.PaymentCreate):
 
 
 async def delete_payment(db: AsyncSession, payment_id: int):
-    """Void/delete a payment and recalculate invoice status."""
+    """Void a payment (soft delete via is_voided) and recalculate invoice status."""
     q = select(models.Payment).where(models.Payment.id == payment_id)
     result = await db.execute(q)
     payment = result.scalar_one_or_none()
     if not payment:
         return None
+    if payment.is_voided:
+        return payment
 
-    invoice_id = payment.invoice_id
-    await db.delete(payment)
+    payment.is_voided = True
     await db.flush()
 
     # Recalculate invoice status after voiding payment
-    invoice = await get_invoice(db, invoice_id)
+    invoice = await get_invoice(db, payment.invoice_id)
     if invoice:
         fin = attach_invoice_financials(invoice)
         total = Decimal(str(fin["total_amount"]))
@@ -524,14 +588,26 @@ async def get_dashboard_stats(db: AsyncSession) -> schemas.DashboardStats:
 
     total_students = (await db.execute(select(func.count(models.Student.id)))).scalar()
     active_students = (await db.execute(
-        select(func.count(models.Student.id)).where(models.Student.status == "active")
+        select(func.count(models.Student.id)).where(
+            models.Student.status == models.StudentStatus.ACTIVE
+        )
     )).scalar()
     total_parents = (await db.execute(select(func.count(models.Parent.id)))).scalar()
     pending_invoices = (await db.execute(
-        select(func.count(models.Invoice.id)).where(models.Invoice.status == "pending")
+        select(func.count(models.Invoice.id)).where(
+            models.Invoice.status == models.InvoiceStatus.PENDING
+        )
     )).scalar()
     overdue_invoices = (await db.execute(
-        select(func.count(models.Invoice.id)).where(models.Invoice.status == "overdue")
+        select(func.count(models.Invoice.id)).where(or_(
+            models.Invoice.status == models.InvoiceStatus.OVERDUE,
+            and_(
+                models.Invoice.due_date < date.today(),
+                models.Invoice.status.in_([
+                    models.InvoiceStatus.PENDING, models.InvoiceStatus.PARTIAL
+                ]),
+            ),
+        ))
     )).scalar()
 
     collected_q = select(func.coalesce(func.sum(models.Payment.amount_paid), 0)).join(
@@ -543,14 +619,18 @@ async def get_dashboard_stats(db: AsyncSession) -> schemas.DashboardStats:
         func.coalesce(func.sum(models.InvoiceLineItem.amount), 0)
     ).join(
         models.Invoice, models.InvoiceLineItem.invoice_id == models.Invoice.id
-    ).where(models.Invoice.status.in_(["pending", "partial", "overdue"]))
+    ).where(models.Invoice.status.in_([
+        models.InvoiceStatus.PENDING, models.InvoiceStatus.PARTIAL, models.InvoiceStatus.OVERDUE
+    ]))
     pending_total = (await db.execute(pending_total_q)).scalar()
 
     paid_partial_q = select(
         func.coalesce(func.sum(models.Payment.amount_paid), 0)
     ).join(
         models.Invoice, models.Payment.invoice_id == models.Invoice.id
-    ).where(models.Invoice.status.in_(["pending", "partial", "overdue"]))
+    ).where(models.Invoice.status.in_([
+        models.InvoiceStatus.PENDING, models.InvoiceStatus.PARTIAL, models.InvoiceStatus.OVERDUE
+    ]))
     paid_partial = (await db.execute(paid_partial_q)).scalar()
 
     return schemas.DashboardStats(
@@ -573,9 +653,10 @@ async def get_monthly_collections(db: AsyncSession, months: int = 6) -> list[sch
         )
         .join(models.Payment, models.Payment.invoice_id == models.Invoice.id, isouter=True)
         .group_by(models.Invoice.billing_month)
-        .order_by(models.Invoice.billing_month)
+        .order_by(models.Invoice.billing_month.desc())
         .limit(months)
     )
     result = await db.execute(q)
     rows = result.all()
+    rows.reverse()  # most recent N months, returned ascending for the chart
     return [schemas.MonthlyCollection(month=row.billing_month, amount=Decimal(str(row.amount))) for row in rows]

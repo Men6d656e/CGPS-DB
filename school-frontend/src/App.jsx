@@ -4,7 +4,7 @@ import {
   FileText, CreditCard, GraduationCap, Menu, X, Search,
   Bell, ChevronRight, Settings
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useAuth } from './contexts/AuthContext'
 import Dashboard from './pages/Dashboard'
 import Students from './pages/Students'
@@ -41,9 +41,11 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <Routes>
-        <Route path="/*" element={<Login />} />
-      </Routes>
+      <Suspense fallback={<div className="h-screen flex items-center justify-center"><PageLoader /></div>}>
+        <Routes>
+          <Route path="/*" element={<Login />} />
+        </Routes>
+      </Suspense>
     )
   }
 
@@ -71,12 +73,14 @@ export default function App() {
             <p className="font-semibold text-white text-sm leading-tight">School</p>
             <p className="text-[11px] text-teal-300/70 leading-tight">Management System</p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setSidebarOpen(false)}
             className="ml-auto lg:hidden text-teal-300/60 hover:text-white transition-colors flex-shrink-0"
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

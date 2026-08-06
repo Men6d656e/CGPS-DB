@@ -42,7 +42,6 @@ export function ErrorAlert({ message }) {
 }
 
 export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }) {
-  if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
@@ -61,7 +60,6 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' })
 }
 
 export function ConfirmModal({ open, onClose, onConfirm, title, message, confirmText = "Confirm", isDestructive = false }) {
-  if (!open) return null
   return (
     <Modal open={open} onClose={onClose} title={title} maxWidth="max-w-sm">
       <p className="text-gray-500 text-sm mb-6 leading-relaxed">{message}</p>
@@ -104,7 +102,7 @@ export function StatCard({ label, value, icon: Icon, color = 'brand', trend }) {
 export function Field({ label, error, children }) {
   return (
     <div>
-      {label && <label className="label">{label}</label>}
+      {label && <Label className="mb-1.5">{label}</Label>}
       {children}
       {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
     </div>
@@ -126,19 +124,10 @@ export function Select({ children, ...props }) {
 }
 
 export function StatusBadge({ status }) {
-  const map = {
-    active: 'badge-active',
-    withdrawn: 'badge-withdrawn',
-    graduated: 'badge-graduated',
-    pending: 'badge-pending',
-    partial: 'badge-partial',
-    paid: 'badge-paid',
-    overdue: 'badge-overdue',
-  }
   return (
     <span className={map[status] || 'badge bg-gray-100 text-gray-500'}>
       {status}
-    </span>
+    </Badge>
   )
 }
 
@@ -156,18 +145,20 @@ export function SectionHeader({ title, description, action }) {
 
 export function Table({ headers, children, empty }) {
   return (
-    <div className="card overflow-hidden">
+    <div className="rounded-lg border bg-card text-card-foreground shadow overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/60">
               {headers.map((h) => (
-                <th key={h} className="th">{h}</th>
+                <TableHead key={h} className="font-display text-xs uppercase tracking-wider text-muted-foreground">
+                  {h}
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>{children}</tbody>
-        </table>
+            </TableRow>
+          </TableHeader>
+          <TableBody>{children}</TableBody>
+        </STable>
         {empty}
       </div>
     </div>
@@ -201,7 +192,23 @@ export function Pagination({ skip, limit, totalItemsInCurrentPage, onNext, onPre
           Next <ChevronRight size={14} />
         </button>
       </div>
-    </div>
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            onClick={(e) => { e.preventDefault(); onPrev() }}
+            className={!hasPrev ? 'pointer-events-none opacity-50' : ''}
+          />
+        </PaginationItem>
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            onClick={(e) => { e.preventDefault(); onNext() }}
+            className={!hasNext ? 'pointer-events-none opacity-50' : ''}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </SPagination>
   )
 }
 
